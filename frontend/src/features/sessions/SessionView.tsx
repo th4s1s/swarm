@@ -28,6 +28,13 @@ import { useRunEvents, useRunnerOptions, useRuns, useSession, useSessionFamily }
 
 export function SessionView() {
   const { id = '' } = useParams();
+  // Remount per session id so all per-session state (selected run, monitor tab) and the
+  // live socket reset cleanly when navigating between members of a fork family.
+  return <SessionWorkspace key={id} sessionId={id} />;
+}
+
+function SessionWorkspace({ sessionId }: { sessionId: string }) {
+  const id = sessionId;
   const qc = useQueryClient();
   const session = useSession(id);
   const family = useSessionFamily(id);
@@ -50,14 +57,22 @@ export function SessionView() {
   );
 
   const socket = useSessionSocket(id, onWs);
-  const replay = useRunEvents(viewRun !== 'live' ? viewRun : undefined);
+  // The run currently streaming (the latest live event's run). When the selected saved
+  // run IS that run, show the live socket events for it instead of a stale snapshot.
+  const liveRunId = socket.events.length ? socket.events[socket.events.length - 1]!.runId : null;
+  const isLiveSel = viewRun === 'live' || (liveRunId != null && viewRun === liveRunId);
+  const replay = useRunEvents(isLiveSel ? undefined : viewRun);
 
   if (session.isLoading) return <Loading />;
   if (session.isError || !session.data) return <div className="p-6"><ErrorNote error={session.error ?? 'not found'} /></div>;
   const s = session.data;
 
-  const liveEvents: StreamEvent[] = socket.events.map((e) => e.event);
-  const events: StreamEvent[] = viewRun === 'live' ? liveEvents : ((replay.data?.events ?? []) as StreamEvent[]);
+  const events: StreamEvent[] =
+    viewRun === 'live'
+      ? socket.events.map((e) => e.event)
+      : viewRun === liveRunId
+        ? socket.events.filter((e) => e.runId === liveRunId).map((e) => e.event)
+        : ((replay.data?.events ?? []) as StreamEvent[]);
   const running = s.status === 'running' || socket.sessionStatus === 'running';
   const liveInterval = running ? 4000 : false;
   const findings = s.audit.findings;
@@ -119,7 +134,7 @@ export function SessionView() {
             </div>
             <div className="min-h-0 flex-1">
               {monitorTab === 'terminal' ? (
-                <TerminalView events={events} running={viewRun === 'live' && running} />
+                <TerminalView events={events} running={isLiveSel && running} />
               ) : (
                 <JsonView events={events} />
               )}

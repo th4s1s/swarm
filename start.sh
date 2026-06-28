@@ -25,7 +25,15 @@ if [ ! -d "$FRONTEND/node_modules" ]; then
 fi
 
 # Kill the whole process group on exit so Ctrl-C stops both servers.
-trap 'echo; echo "Shutting down SWARM…"; kill 0 2>/dev/null' INT TERM EXIT
+# Disarm the traps first so the handler runs exactly once (kill 0 signals our own
+# group, which would otherwise re-fire the trap, spam the message, and crash).
+cleanup() {
+  trap - INT TERM EXIT
+  echo
+  echo "Shutting down SWARM…"
+  kill 0 2>/dev/null
+}
+trap cleanup INT TERM EXIT
 
 echo "Starting backend  -> http://127.0.0.1:8787"
 (cd "$BACKEND" && npm start) &
