@@ -40,10 +40,12 @@ export function ConfigPage() {
   return (
     <div>
       <PageHeader title="Config" subtitle="App settings & per-run defaults" />
-      <div className="max-w-3xl p-6">
-        <Card>
-          <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="max-w-6xl p-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="flex flex-col gap-4 lg:col-span-2">
+            <Card>
+              <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
+              <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Admin user">
               <Input value={form.admin_user ?? ''} onChange={(e) => set('admin_user', e.target.value)} />
             </Field>
@@ -104,25 +106,35 @@ export function ConfigPage() {
             <Field label="Resource sample interval (ms)">
               <Input type="number" value={form.resource_sample_ms ?? '5000'} onChange={(e) => set('resource_sample_ms', e.target.value)} />
             </Field>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        <div className="mt-4 flex items-center gap-3">
-          <Button onClick={save} disabled={patch.isPending}>
-            {saved ? <Check /> : <Save />} {saved ? 'Saved' : patch.isPending ? 'Saving…' : 'Save settings'}
-          </Button>
-          {patch.isError ? <span className="text-xs text-danger">{(patch.error as Error).message}</span> : null}
+            <div className="flex items-center gap-3">
+              <Button onClick={save} disabled={patch.isPending}>
+                {saved ? <Check /> : <Save />} {saved ? 'Saved' : patch.isPending ? 'Saving…' : 'Save settings'}
+              </Button>
+              {patch.isError ? <span className="text-xs text-danger">{(patch.error as Error).message}</span> : null}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <Card>
+              <CardHeader><CardTitle>Paths (read-only)</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-2.5 font-mono text-xs">
+                {Object.entries(q.data.paths).map(([k, v]) => (
+                  <div key={k} className="flex flex-col gap-0.5">
+                    <span className="text-muted">{k}</span>
+                    <span className="break-all text-fg/80">{v}</span>
+                  </div>
+                ))}
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-muted">claude_bin</span>
+                  <span className="break-all text-fg/80">{q.data.claude_bin}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        <Card className="mt-6">
-          <CardHeader><CardTitle>Paths (read-only)</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-1 font-mono text-xs text-muted">
-            {Object.entries(q.data.paths).map(([k, v]) => (
-              <div key={k}><span className="text-fg/70">{k}</span>: {v}</div>
-            ))}
-            <div><span className="text-fg/70">claude_bin</span>: {q.data.claude_bin}</div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
