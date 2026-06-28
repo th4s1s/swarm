@@ -13,14 +13,23 @@ export interface ClaudeSpawnOpts {
   fork?: boolean;
   permissionMode?: string;
   model?: string | null;
-  /** Reasoning effort: low | medium | high | xhigh | max (omit for the model default). */
+  /**
+   * Reasoning effort. Native CLI levels: low | medium | high | xhigh | max.
+   * `ultracode` is a preset (not a native --effort value): it maps to `--effort
+   * xhigh` plus a workflow-mode directive (see manager). Omit for the model default.
+   */
   effort?: string | null;
+  /** Extra system-prompt text appended via --append-system-prompt. */
+  appendSystemPrompt?: string | null;
   includePartial?: boolean;
   /** Streaming-input mode (lets us write more user messages to stdin mid-run). */
   streamingInput?: boolean;
 }
 
+/** Native --effort levels accepted by the CLI. */
 export const EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+/** Selectable effort options in the app (adds the `ultracode` preset). */
+export const EFFORT_OPTIONS = [...EFFORT_LEVELS, 'ultracode'] as const;
 
 /** A single parsed stream-json event plus the raw line it came from. */
 export interface StreamEvent {
@@ -50,9 +59,12 @@ export function buildClaudeArgs(opts: ClaudeSpawnOpts): string[] {
   if (opts.includePartial) args.push('--include-partial-messages');
   if (opts.permissionMode) args.push('--permission-mode', opts.permissionMode);
   if (opts.model) args.push('--model', opts.model);
-  if (opts.effort && (EFFORT_LEVELS as readonly string[]).includes(opts.effort)) {
-    args.push('--effort', opts.effort);
+  // `ultracode` is xhigh + workflows; pass xhigh as the native effort.
+  const effortLevel = opts.effort === 'ultracode' ? 'xhigh' : opts.effort;
+  if (effortLevel && (EFFORT_LEVELS as readonly string[]).includes(effortLevel)) {
+    args.push('--effort', effortLevel);
   }
+  if (opts.appendSystemPrompt) args.push('--append-system-prompt', opts.appendSystemPrompt);
   if (opts.sessionId) args.push('--session-id', opts.sessionId);
   if (opts.resume) args.push('--resume', opts.resume);
   if (opts.fork) args.push('--fork-session');

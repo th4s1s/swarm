@@ -156,6 +156,10 @@ class RunnerManager {
         permissionMode: cfg.permissionMode,
         model: cfg.model,
         effort: cfg.effort,
+        appendSystemPrompt:
+          cfg.effort === 'ultracode'
+            ? 'Ultracode is on: prefer the Workflow tool and drive substantive work gateless, end-to-end, per the skill’s workflow-accelerated mode where applicable.'
+            : null,
         includePartial: true,
       },
       {

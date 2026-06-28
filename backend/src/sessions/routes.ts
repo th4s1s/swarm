@@ -7,7 +7,7 @@ const configSchema = z
     mode: z.string().max(20).optional(),
     permissionMode: z.string().max(40).optional(),
     model: z.string().max(80).nullable().optional(),
-    effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).nullable().optional(),
+    effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max', 'ultracode']).nullable().optional(),
     thinking: z.boolean().nullable().optional(),
     thinkingTokens: z.number().int().min(1024).max(200000).nullable().optional(),
   })

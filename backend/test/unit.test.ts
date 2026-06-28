@@ -104,6 +104,14 @@ describe('buildClaudeArgs', () => {
     expect(buildClaudeArgs({ ...base, effort: null })).not.toContain('--effort');
     expect(buildClaudeArgs({ ...base, effort: 'bogus' })).not.toContain('--effort');
   });
+  it('maps ultracode to --effort xhigh', () => {
+    const a = buildClaudeArgs({ ...base, effort: 'ultracode' });
+    expect(a[a.indexOf('--effort') + 1]).toBe('xhigh');
+  });
+  it('appends a system prompt when provided', () => {
+    const a = buildClaudeArgs({ ...base, appendSystemPrompt: 'ultracode is on' });
+    expect(a[a.indexOf('--append-system-prompt') + 1]).toBe('ultracode is on');
+  });
   it('sets session/resume/fork and permission/model flags', () => {
     const a = buildClaudeArgs({ ...base, resume: 'sid1', fork: true, permissionMode: 'bypassPermissions', model: 'claude-opus-4-8' });
     expect(a).toEqual(expect.arrayContaining(['--resume', 'sid1', '--fork-session', '--permission-mode', 'bypassPermissions', '--model', 'claude-opus-4-8']));
