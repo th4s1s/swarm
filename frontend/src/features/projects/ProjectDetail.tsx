@@ -156,7 +156,7 @@ function GitCard({ id, currentRef, currentCommit }: { id: string; currentRef: st
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center gap-2 text-sm">
           <GitBranch className="size-4 text-primary" />
-          <span className="font-mono">{currentRef ?? '—'}</span>
+          <span className="font-mono">{currentRef ?? '-'}</span>
           <span className="text-muted">@ {shortSha(currentCommit)}</span>
         </div>
 
@@ -202,7 +202,7 @@ function GitCard({ id, currentRef, currentCommit }: { id: string; currentRef: st
             status.hasUpdates ? (
               <div className="flex items-center justify-between rounded-md border border-primary/40 bg-primary-dim px-3 py-2">
                 <div className="text-xs text-primary">
-                  Updates available — behind {status.behind}
+                  Updates available - behind {status.behind}
                   {status.newTags.length ? `, ${status.newTags.length} new tag(s)` : ''}
                 </div>
                 <Button size="sm" disabled={apply.isPending} onClick={() => apply.mutate({ token: token || undefined })}>

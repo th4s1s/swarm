@@ -1,4 +1,4 @@
-# SWARM — backend
+# SWARM - backend
 
 Backend for **SWARM**, a parallel-agent source-code security-audit app. It drives the
 **Claude Code CLI** to run the `vibehack` audit skill (at `/vibe/hack/skill`), manages projects and
@@ -14,7 +14,7 @@ Stack: **Fastify + TypeScript**, **SQLite** (`better-sqlite3`). Drives the `clau
 ## Requirements
 
 - Node.js >= 22 (uses the global `fetch`/`WebSocket`).
-- `claude` CLI logged in (`~/.claude/.credentials.json` present) — used for runs, quota, MCP.
+- `claude` CLI logged in (`~/.claude/.credentials.json` present) - used for runs, quota, MCP.
 - `git`, `unzip`-capable env, and Docker (for the Resources panel).
 - The skill roots exist: `/vibe/hack/projects`, `/vibe/hack/audits`, `/vibe/hack/skill`.
 

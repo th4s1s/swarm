@@ -3,10 +3,10 @@
 **Parallel-agent source-code security auditing.**
 
 SWARM is a self-hosted web app that drives the **Claude Code CLI** to run a structured, multi-phase
-security audit of a codebase — *recon → deploy → audit → fpcheck → verify → report* — fanning out
+security audit of a codebase - *recon → deploy → audit → fpcheck → verify → report* - fanning out
 parallel subagents at each phase (the "swarm"). You manage target projects, launch audit sessions,
 watch each run stream live in a Claude-CLI-style terminal, fork sessions to verify individual findings
-against a live instance, and keep an eye on Claude quota/usage and Docker resources — all from one UI.
+against a live instance, and keep an eye on Claude quota/usage and Docker resources - all from one UI.
 
 The audit methodology itself lives in a separate Claude Code skill, **`vibehack`**
 (repo: `th4s1s/vibe-hack-skill`, installed at `/vibe/hack/skill`). SWARM orchestrates that skill; only
@@ -30,18 +30,18 @@ Browser ──► frontend (React + Vite + Tailwind, neon-green UI)   :5173
                 └─ audits    → /vibe/hack/audits/<name>/audit-<ts>/  (audit.db, artifacts, reports)
 ```
 
-- **`backend/`** — Fastify API + per-session WebSocket. Manages projects (git clone / zip), audit
+- **`backend/`** - Fastify API + per-session WebSocket. Manages projects (git clone / zip), audit
   sessions and forks, the run queue, MCP servers, quota, usage, and Docker resources. App state in
   SQLite (`backend/data/app.db`); each audit's findings are read read-only from the skill's `audit.db`.
   See [backend/README.md](backend/README.md).
-- **`frontend/`** — the SPA: projects, the live session monitor (terminal + JSON), run controls,
+- **`frontend/`** - the SPA: projects, the live session monitor (terminal + JSON), run controls,
   findings/reports, and the ops dashboards. See [frontend/README.md](frontend/README.md).
-- **`PLAN.md`** — the product spec / feature vision.
+- **`PLAN.md`** - the product spec / feature vision.
 
 ## Requirements
 
 - **Node.js ≥ 22** (backend uses global `fetch`/`WebSocket`).
-- **Claude Code CLI** logged in (`~/.claude/.credentials.json`) — used for audit runs, quota, and MCP.
+- **Claude Code CLI** logged in (`~/.claude/.credentials.json`) - used for audit runs, quota, and MCP.
 - The **`vibehack` skill** installed at `/vibe/hack/skill`.
 - **git**, an `unzip`-capable environment, and **Docker** (for live deploys + the Resources panel).
 - The audit roots exist: `/vibe/hack/projects`, `/vibe/hack/audits`.

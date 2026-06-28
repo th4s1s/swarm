@@ -65,7 +65,7 @@ export function NewProjectDialog() {
           <Field label="Title">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="My Target App" />
           </Field>
-          <Field label="Name (dir-safe: A–Z a–z 0–9 - _)">
+          <Field label="Name (dir-safe: A-Z a-z 0-9 - _)">
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}

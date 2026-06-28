@@ -99,7 +99,7 @@ export function RunControls({
           {tps.map((f) => (
             <option key={f.id} value={f.id}>
               {f.final_id ? `${f.final_id} · ` : ''}
-              {f.id} — {f.title}
+              {f.id} - {f.title}
             </option>
           ))}
         </Select>
@@ -108,7 +108,7 @@ export function RunControls({
       <Textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Custom prompt — appended to the selected phase/mode, or sent on its own."
+        placeholder="Custom prompt - appended to the selected phase/mode, or sent on its own."
         className="min-h-[64px]"
       />
 

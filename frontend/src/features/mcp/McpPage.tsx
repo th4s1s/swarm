@@ -23,7 +23,7 @@ export function McpPage() {
     <div>
       <PageHeader
         title="MCP Servers"
-        subtitle="Model Context Protocol servers — global (user) and per-project"
+        subtitle="Model Context Protocol servers - global (user) and per-project"
         actions={<AddMcpDialog scope={scope} project={project} />}
       />
       <div className="flex flex-col gap-4 p-6">

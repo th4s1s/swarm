@@ -1,7 +1,7 @@
 import { join, relative, resolve, isAbsolute } from 'node:path';
 import { config } from '../config.js';
 
-/** Project/session names are used for directory creation — keep them dir-safe. */
+/** Project/session names are used for directory creation - keep them dir-safe. */
 export const PROJECT_NAME_RE = /^[A-Za-z0-9_-]+$/;
 
 const RESERVED_NAMES = new Set(['.', '..', 'con', 'prn', 'aux', 'nul']);

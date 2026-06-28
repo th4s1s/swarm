@@ -1,4 +1,4 @@
-# SWARM — frontend
+# SWARM - frontend
 
 The web UI for **SWARM**, a parallel-agent source-code security-audit app. A single-page app that
 talks to the [backend](../backend/README.md) over REST + a per-session WebSocket and renders the whole
@@ -52,18 +52,18 @@ src/
 
 ## Key screens
 
-- **Projects** — create from a git URL (+ optional token) or a zip upload; per-project git ops
+- **Projects** - create from a git URL (+ optional token) or a zip upload; per-project git ops
   (branches, checkout, check-for-updates, update), zip re-upload, live-instance note editor.
-- **Session view** — the centerpiece. A **fork-tree tab bar**, a **Session Monitor** with a
+- **Session view** - the centerpiece. A **fork-tree tab bar**, a **Session Monitor** with a
   **Terminal** view (renders the Claude stream-json events into CLI-style blocks) and a raw **JSON**
-  view, plus per-run replay. Below the monitor: **run controls** — phase/mode chips + a custom-prompt
+  view, plus per-run replay. Below the monitor: **run controls** - phase/mode chips + a custom-prompt
   box, with **queue / steer / stop**. On the right: **Findings**, **Report** (markdown + copy), **Queue**.
-- **Quota** — account + usage-window meters with reset countdowns.
-- **Usage** — token/cost time-series, by-model and by-project breakdowns (drill into sessions).
-- **Resources** — Docker images/containers (search, filter, bulk delete, start/stop/restart) and live
+- **Quota** - account + usage-window meters with reset countdowns.
+- **Usage** - token/cost time-series, by-model and by-project breakdowns (drill into sessions).
+- **Resources** - Docker images/containers (search, filter, bulk delete, start/stop/restart) and live
   CPU/mem/network/disk I/O graphs.
-- **MCP** — list/add/remove MCP servers (user + per-project scope).
-- **Config** — app settings and per-run Claude defaults.
+- **MCP** - list/add/remove MCP servers (user + per-project scope).
+- **Config** - app settings and per-run Claude defaults.
 
 ## Theme note
 

@@ -19,20 +19,20 @@ export function tokens(n: number | null | undefined): string {
 }
 
 export function usd(n: number | null | undefined): string {
-  if (n == null) return '—';
+  if (n == null) return '-';
   if (n === 0) return '$0';
   if (n < 0.01) return `$${n.toFixed(4)}`;
   return `$${n.toFixed(2)}`;
 }
 
 export function shortSha(s: string | null | undefined): string {
-  return s ? s.slice(0, 8) : '—';
+  return s ? s.slice(0, 8) : '-';
 }
 
 export function relTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '—';
+  if (Number.isNaN(t)) return '-';
   const diff = Date.now() - t;
   const abs = Math.abs(diff);
   const fut = diff < 0;
@@ -46,9 +46,9 @@ export function relTime(iso: string | null | undefined): string {
 }
 
 export function untilTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '—';
+  if (Number.isNaN(t)) return '-';
   const diff = t - Date.now();
   if (diff <= 0) return 'now';
   const m = Math.round(diff / 60000);
@@ -61,9 +61,9 @@ export function untilTime(iso: string | null | undefined): string {
 }
 
 export function dateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleString();
 }
 
 const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };

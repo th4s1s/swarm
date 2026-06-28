@@ -66,15 +66,15 @@ export function FindingsPanel({ sessionId }: { sessionId: string }) {
                 <TD className="whitespace-nowrap font-mono text-xs text-muted">{f.final_id ?? f.id}</TD>
                 <TD><SeverityBadge severity={f.severity} /></TD>
                 <TD className="max-w-[22rem] truncate" title={f.title}>{f.title}</TD>
-                <TD className="whitespace-nowrap text-xs text-muted">{f.cwe ?? '—'}</TD>
+                <TD className="whitespace-nowrap text-xs text-muted">{f.cwe ?? '-'}</TD>
                 <TD className="max-w-[14rem] truncate font-mono text-[11px] text-muted" title={f.location ?? ''}>
-                  {f.location ?? '—'}
+                  {f.location ?? '-'}
                 </TD>
                 <TD>
                   {f.verdict ? (
                     <Badge tone={VERDICT_TONE[f.verdict] ?? 'neutral'}>{f.verdict.replace('_', ' ').toLowerCase()}</Badge>
                   ) : (
-                    <span className="text-xs text-muted">—</span>
+                    <span className="text-xs text-muted">-</span>
                   )}
                 </TD>
               </TR>

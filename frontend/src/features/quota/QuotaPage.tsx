@@ -32,9 +32,9 @@ export function QuotaPage() {
             <Card>
               <CardHeader><CardTitle>Account</CardTitle></CardHeader>
               <CardContent className="flex flex-wrap gap-6 text-sm">
-                <Info icon={<Mail className="size-4" />} label="Email" value={q.data?.account.email ?? '—'} />
-                <Info icon={<ShieldCheck className="size-4" />} label="Plan" value={q.data?.plan ?? '—'} />
-                <Info icon={<Gauge className="size-4" />} label="Subscription" value={q.data?.account.subscriptionType ?? '—'} />
+                <Info icon={<Mail className="size-4" />} label="Email" value={q.data?.account.email ?? '-'} />
+                <Info icon={<ShieldCheck className="size-4" />} label="Plan" value={q.data?.plan ?? '-'} />
+                <Info icon={<Gauge className="size-4" />} label="Subscription" value={q.data?.account.subscriptionType ?? '-'} />
               </CardContent>
             </Card>
 

@@ -42,7 +42,7 @@ export async function registerProjects(app: FastifyInstance): Promise<void> {
   await app.register(async (r) => {
     r.addHook('preHandler', app.authGuard);
 
-    // Create — git (JSON) or zip (multipart/form-data with a `file` part)
+    // Create - git (JSON) or zip (multipart/form-data with a `file` part)
     r.post('/api/projects', async (req, reply) => {
       if (req.isMultipart()) {
         const { fields, file } = await readMultipart(req);

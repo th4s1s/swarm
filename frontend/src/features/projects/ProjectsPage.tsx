@@ -15,7 +15,7 @@ export function ProjectsPage() {
     <div>
       <PageHeader
         title="Projects"
-        subtitle="Targets under audit — clone from git or upload a zip"
+        subtitle="Targets under audit - clone from git or upload a zip"
         actions={<NewProjectDialog />}
       />
       <div className="p-6">
@@ -52,7 +52,7 @@ export function ProjectsPage() {
                     {p.source_type === 'git' && (
                       <span className="inline-flex items-center gap-1">
                         <GitBranch className="size-3" />
-                        {p.current_ref ?? '—'} @ {shortSha(p.current_commit)}
+                        {p.current_ref ?? '-'} @ {shortSha(p.current_commit)}
                       </span>
                     )}
                   </div>

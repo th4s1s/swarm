@@ -1,7 +1,7 @@
 /**
  * app.db schema (better-sqlite3). All statements are idempotent so init() can
  * run on every boot. The per-audit `audit.db` (written by the claude skill) is
- * a SEPARATE database opened read-only elsewhere — never created here.
+ * a SEPARATE database opened read-only elsewhere - never created here.
  */
 export const SCHEMA_SQL = /* sql */ `
 PRAGMA journal_mode = WAL;

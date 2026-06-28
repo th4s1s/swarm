@@ -11,7 +11,7 @@ export function sanitizeUrl(url: string): string {
     u.password = '';
     return u.toString();
   } catch {
-    return url; // ssh-style scp urls (git@host:repo) — nothing to strip
+    return url; // ssh-style scp urls (git@host:repo) - nothing to strip
   }
 }
 

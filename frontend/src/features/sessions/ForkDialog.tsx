@@ -66,7 +66,7 @@ export function ForkDialog({
               {tps.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.final_id ? `${f.final_id} · ` : ''}
-                  {f.id} — {f.title}
+                  {f.id} - {f.title}
                 </option>
               ))}
             </Select>

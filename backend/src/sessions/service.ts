@@ -119,7 +119,7 @@ export function forkSession(
   const parent = mustSession(parentId);
   if (parent.is_fork) throw badRequest('cannot fork a fork; fork the root session');
   if (!parent.claude_session_id) {
-    throw conflict('parent has no claude session yet — run at least one phase before forking');
+    throw conflict('parent has no claude session yet - run at least one phase before forking');
   }
   if (!input.title) throw badRequest('fork title is required');
   const cfg = { ...parseConfig(parent.config_json), ...(input.config ?? {}) };

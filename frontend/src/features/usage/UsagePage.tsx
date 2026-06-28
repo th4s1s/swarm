@@ -41,7 +41,7 @@ export function UsagePage() {
     <div>
       <PageHeader
         title="Usage"
-        subtitle={summary.data?.pricingNote ?? 'token consumption — cost is estimated'}
+        subtitle={summary.data?.pricingNote ?? 'token consumption - cost is estimated'}
         actions={
           <Select value={days} onChange={(e) => setDays(Number(e.target.value))} className="h-8 w-28">
             <option value={7}>7 days</option>

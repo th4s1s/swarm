@@ -82,7 +82,7 @@ function Containers() {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Containers" value={totals?.count ?? '—'} />
+        <StatCard label="Containers" value={totals?.count ?? '-'} />
         <StatCard label="Total CPU" value={`${(totals?.totalCpu ?? 0).toFixed(1)}%`} />
         <StatCard label="Total Mem" value={bytes(totals?.totalMem)} />
       </div>
@@ -120,10 +120,10 @@ function Containers() {
                   <TD className="font-medium text-fg">{c.name}</TD>
                   <TD className="font-mono text-xs text-muted">{c.image}</TD>
                   <TD><StatusPill status={c.state === 'running' ? 'running' : c.state} /></TD>
-                  <TD className="max-w-[12rem] truncate font-mono text-[11px] text-muted" title={c.ports.join(', ')}>{c.ports.join(', ') || '—'}</TD>
-                  <TD>{c.stats ? `${c.stats.cpuPerc.toFixed(1)}%` : '—'}</TD>
-                  <TD className="text-xs">{c.stats ? `${bytes(c.stats.memUsage)} / ${bytes(c.stats.memLimit)}` : '—'}</TD>
-                  <TD className="text-muted">{c.stats?.pids ?? '—'}</TD>
+                  <TD className="max-w-[12rem] truncate font-mono text-[11px] text-muted" title={c.ports.join(', ')}>{c.ports.join(', ') || '-'}</TD>
+                  <TD>{c.stats ? `${c.stats.cpuPerc.toFixed(1)}%` : '-'}</TD>
+                  <TD className="text-xs">{c.stats ? `${bytes(c.stats.memUsage)} / ${bytes(c.stats.memLimit)}` : '-'}</TD>
+                  <TD className="text-muted">{c.stats?.pids ?? '-'}</TD>
                   <TD>
                     <div className="flex items-center gap-1">
                       {c.state === 'running' ? (
@@ -167,7 +167,7 @@ function Images() {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Images" value={q.data?.totals.count ?? '—'} />
+        <StatCard label="Images" value={q.data?.totals.count ?? '-'} />
         <StatCard label="Total size" value={bytes(q.data?.totals.totalSize)} />
       </div>
       <div className="flex items-center gap-2">
