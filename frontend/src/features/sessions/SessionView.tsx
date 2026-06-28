@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, GitFork, Radio } from 'lucide-react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { ArrowLeft, GitBranch, GitFork, Radio } from 'lucide-react';
 import { PageHeader } from '@/components/AppShell';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,7 +14,7 @@ import { ErrorNote, Loading } from '@/components/ui/misc';
 import { cn } from '@/lib/utils';
 import { qk } from '@/lib/query';
 import { useSessionSocket } from '@/lib/ws';
-import type { StreamEvent, WsMessage } from '@/lib/types';
+import type { FamilyMember, StreamEvent, WsMessage } from '@/lib/types';
 import { TerminalView } from '@/features/monitor/TerminalView';
 import { JsonView } from '@/features/monitor/JsonView';
 import { RunControls } from '@/features/monitor/RunControls';
@@ -20,12 +22,14 @@ import { QueueList } from '@/features/monitor/QueueList';
 import { FindingsPanel } from '@/features/findings/FindingsPanel';
 import { ReportView } from '@/features/findings/ReportView';
 import { ForkDialog } from './ForkDialog';
-import { useRunEvents, useRunnerOptions, useRuns, useSession } from './api';
+import { SessionConfigCard } from './SessionConfigCard';
+import { useRunEvents, useRunnerOptions, useRuns, useSession, useSessionFamily } from './api';
 
 export function SessionView() {
   const { id = '' } = useParams();
   const qc = useQueryClient();
   const session = useSession(id);
+  const family = useSessionFamily(id);
   const options = useRunnerOptions();
   const runs = useRuns(id);
   const [viewRun, setViewRun] = useState<string>('live'); // 'live' or a runId
@@ -54,13 +58,9 @@ export function SessionView() {
   const liveEvents: StreamEvent[] = socket.events.map((e) => e.event);
   const events: StreamEvent[] = viewRun === 'live' ? liveEvents : ((replay.data?.events ?? []) as StreamEvent[]);
   const running = s.status === 'running' || socket.sessionStatus === 'running';
+  const liveInterval = running ? 4000 : false;
   const findings = s.audit.findings;
-
-  // Fork tabs: show the root + its children (works whether we're on the root or a fork).
-  const rootIsThis = !s.is_fork;
-  const familyTabs = rootIsThis
-    ? [{ id: s.id, title: s.title, isRoot: true, status: s.status }, ...s.child_sessions.map((c) => ({ id: c.id, title: c.title, isRoot: false, status: c.status }))]
-    : null; // for a fork we still show its own children below; parent link in header
+  const familyMembers = family.data?.members ?? [];
 
   return (
     <div className="flex h-full flex-col">
@@ -84,29 +84,11 @@ export function SessionView() {
             </span>
           </span>
         }
-        actions={<ForkDialog sessionId={rootIsThis ? s.id : s.parent_session_id ?? s.id} findings={findings} disabled={!s.claude_session_id && rootIsThis} />}
+        actions={<ForkDialog sessionId={s.id} findings={findings} disabled={!s.claude_session_id} />}
       />
 
-      {/* Fork family tabs */}
-      {familyTabs && familyTabs.length > 1 ? (
-        <div className="flex items-center gap-1.5 border-b border-line px-6 py-2">
-          <span className="mr-1 text-[11px] uppercase tracking-wider text-muted">sessions</span>
-          {familyTabs.map((t) => (
-            <Link
-              key={t.id}
-              to={`/sessions/${t.id}`}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs',
-                t.id === s.id ? 'border-primary/60 bg-primary-dim text-primary' : 'border-line text-muted hover:text-fg',
-              )}
-            >
-              {t.isRoot ? null : <GitFork className="size-3" />}
-              {t.title}
-              <StatusPill status={t.status} className="text-[10px]" />
-            </Link>
-          ))}
-        </div>
-      ) : null}
+      {/* Fork family tree (root + all forks, recursively) - always visible on every member */}
+      {familyMembers.length > 1 ? <ForkTree members={familyMembers} currentId={s.id} /> : null}
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-5">
         {/* Monitor + run controls */}
@@ -147,27 +129,91 @@ export function SessionView() {
           ) : null}
         </div>
 
-        {/* Right: findings / report / queue */}
+        {/* Right: findings / report / queue / notes / config */}
         <div className="flex min-h-0 flex-col lg:col-span-2">
           <Tabs defaultValue="findings" className="flex min-h-0 flex-1 flex-col">
             <TabsList>
               <TabsTrigger value="findings">Findings</TabsTrigger>
               <TabsTrigger value="report">Report</TabsTrigger>
               <TabsTrigger value="queue">Queue</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="config">Config</TabsTrigger>
             </TabsList>
             <Card className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden">
               <TabsContent value="findings" className="min-h-0 flex-1 overflow-y-auto p-3">
-                <FindingsPanel sessionId={id} />
+                <FindingsPanel sessionId={id} refetchInterval={liveInterval} />
               </TabsContent>
               <TabsContent value="report" className="min-h-0 flex-1 overflow-hidden">
-                <ReportView sessionId={id} focusFindingId={s.fork_finding_id} />
+                <ReportView sessionId={id} focusFindingId={s.fork_finding_id} refetchInterval={liveInterval} />
               </TabsContent>
               <TabsContent value="queue" className="min-h-0 flex-1 overflow-y-auto p-3">
                 <QueueList sessionId={id} onSelectRun={(r) => setViewRun(r)} />
               </TabsContent>
+              <TabsContent value="notes" className="min-h-0 flex-1 overflow-y-auto p-3">
+                {s.resume_note ? (
+                  <article className="markdown text-sm leading-relaxed text-fg/90">
+                    <Markdown remarkPlugins={[remarkGfm]}>{s.resume_note}</Markdown>
+                  </article>
+                ) : (
+                  <div className="text-xs text-muted">
+                    No resume note yet. The audit writes one once recon/audit has run (it holds pipeline
+                    state, the live-instance pointer, and the fork inventory).
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="config" className="min-h-0 flex-1 overflow-y-auto p-3">
+                <SessionConfigCard sessionId={id} config={s.config} disabled={running} />
+              </TabsContent>
             </Card>
           </Tabs>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Root + all forks (and forks of forks) as an indented tree, built from parent links. */
+function ForkTree({ members, currentId }: { members: FamilyMember[]; currentId: string }) {
+  const ids = new Set(members.map((m) => m.id));
+  const byParent = new Map<string | null, FamilyMember[]>();
+  for (const m of members) {
+    // Treat a member whose parent is outside this family as a root, to be safe.
+    const key = m.parent_session_id && ids.has(m.parent_session_id) ? m.parent_session_id : null;
+    const list = byParent.get(key) ?? [];
+    list.push(m);
+    byParent.set(key, list);
+  }
+  const rows: { m: FamilyMember; depth: number }[] = [];
+  const walk = (m: FamilyMember, depth: number) => {
+    rows.push({ m, depth });
+    for (const c of byParent.get(m.id) ?? []) walk(c, depth + 1);
+  };
+  for (const r of byParent.get(null) ?? []) walk(r, 0);
+
+  return (
+    <div className="flex flex-col gap-1 border-b border-line px-6 py-2">
+      <span className="text-[11px] uppercase tracking-wider text-muted">sessions</span>
+      <div className="flex flex-col items-start gap-1">
+        {rows.map(({ m, depth }) => (
+          <Link
+            key={m.id}
+            to={`/sessions/${m.id}`}
+            style={{ marginLeft: depth * 18 }}
+            title={m.fork_finding_id ? `verifies ${m.fork_finding_id}` : undefined}
+            className={cn(
+              'flex w-fit items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs',
+              m.id === currentId
+                ? 'border-primary/60 bg-primary-dim text-primary'
+                : 'border-line text-muted hover:text-fg',
+            )}
+          >
+            {depth > 0 ? <span className="text-muted/50">└</span> : null}
+            {m.is_fork ? <GitFork className="size-3" /> : <GitBranch className="size-3" />}
+            {m.title}
+            {m.fork_finding_id ? <span className="font-mono text-[10px] text-muted/70">{m.fork_finding_id}</span> : null}
+            <StatusPill status={m.status} className="text-[10px]" />
+          </Link>
+        ))}
       </div>
     </div>
   );

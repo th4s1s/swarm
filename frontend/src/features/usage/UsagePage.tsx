@@ -44,6 +44,7 @@ export function UsagePage() {
         subtitle={summary.data?.pricingNote ?? 'token consumption - cost is estimated'}
         actions={
           <Select value={days} onChange={(e) => setDays(Number(e.target.value))} className="h-8 w-28">
+            <option value={1}>1 day</option>
             <option value={7}>7 days</option>
             <option value={30}>30 days</option>
             <option value={90}>90 days</option>

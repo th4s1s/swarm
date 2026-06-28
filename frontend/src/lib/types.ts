@@ -134,6 +134,21 @@ export interface SessionDetail {
   child_sessions: ChildSession[];
 }
 
+export interface FamilyMember {
+  id: string;
+  title: string;
+  parent_session_id: string | null;
+  is_fork: boolean;
+  fork_finding_id: string | null;
+  status: string;
+  claude_session_id: string | null;
+}
+
+export interface SessionFamily {
+  root_id: string | null;
+  members: FamilyMember[];
+}
+
 export interface VulnReportFile {
   finding_id: string;
   file: string;
@@ -251,6 +266,17 @@ export interface McpServer {
   url?: string;
   hasEnv: boolean;
   hasHeaders: boolean;
+}
+
+export interface McpServerConfig {
+  name: string;
+  scope: 'user' | 'project';
+  transport: string;
+  command?: string;
+  args?: string[];
+  url?: string;
+  env?: Record<string, string>;
+  headers?: Record<string, string>;
 }
 
 export interface ImageInfo {

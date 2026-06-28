@@ -11,8 +11,14 @@ const VERDICT_TONE: Record<string, 'primary' | 'danger' | 'neutral'> = {
   DUPLICATE: 'neutral',
 };
 
-export function FindingsPanel({ sessionId }: { sessionId: string }) {
-  const q = useFindings(sessionId);
+export function FindingsPanel({
+  sessionId,
+  refetchInterval = false,
+}: {
+  sessionId: string;
+  refetchInterval?: number | false;
+}) {
+  const q = useFindings(sessionId, refetchInterval);
   if (q.isLoading) return <Loading label="Loading findings…" />;
   const snap = q.data;
 

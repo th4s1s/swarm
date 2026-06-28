@@ -31,6 +31,22 @@
   border-color: var(--line);
 }
 
+/* Native <select> + its option list: keep text from clipping and theme the
+   dropdown dark (the browser renders the open list from these option styles). */
+select {
+  line-height: 1.4;
+}
+select option,
+select optgroup {
+  background-color: rgb(var(--surface-2));
+  color: rgb(var(--fg));
+  padding: 6px 8px;
+}
+select optgroup {
+  color: rgb(var(--muted));
+  font-style: normal;
+}
+
 html,
 body,
 #root {

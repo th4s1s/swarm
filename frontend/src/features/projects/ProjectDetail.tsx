@@ -259,7 +259,7 @@ function LiveNoteCard({ id, note }: { id: string; note: string | null }) {
         <Textarea
           value={v}
           onChange={(e) => setV(e.target.value)}
-          className="min-h-[140px]"
+          className="min-h-[280px]"
           placeholder="Deployment mode, endpoints, credentials, liveness command… (read by verify forks)"
         />
         <Button

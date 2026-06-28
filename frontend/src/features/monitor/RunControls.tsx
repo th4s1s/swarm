@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Send, Square } from 'lucide-react';
+import { Loader2, Play, Send, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea, Input, Select } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -124,7 +124,7 @@ export function RunControls({
             onClick={() => stop.mutate()}
             title="Cancel active run and clear the queue"
           >
-            <Square /> Stop
+            {stop.isPending ? <Loader2 className="animate-spin" /> : <Square />} {stop.isPending ? 'Stopping…' : 'Stop'}
           </Button>
         </div>
         <div className="flex items-center gap-1.5">

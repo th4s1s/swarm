@@ -50,6 +50,7 @@ export async function registerSessions(app: FastifyInstance): Promise<void> {
     });
 
     r.get('/api/sessions/:id', async (req) => svc.getDetail((req.params as { id: string }).id));
+    r.get('/api/sessions/:id/family', async (req) => svc.getFamily((req.params as { id: string }).id));
     r.get('/api/sessions/:id/findings', async (req) => svc.getFindings((req.params as { id: string }).id));
     r.get('/api/sessions/:id/report', async (req) => svc.getReport((req.params as { id: string }).id));
 

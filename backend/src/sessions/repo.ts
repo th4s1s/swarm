@@ -63,6 +63,14 @@ export const listChildren = (parentId: string): SessionRow[] =>
     .prepare('SELECT * FROM audit_sessions WHERE parent_session_id = ? ORDER BY created_at ASC')
     .all(parentId) as SessionRow[];
 
+/** Every session sharing a workspace: the root plus all forks (and forks of forks). */
+export const listFamily = (projectId: string, sessionName: string): SessionRow[] =>
+  db()
+    .prepare(
+      'SELECT * FROM audit_sessions WHERE project_id = ? AND session_name = ? ORDER BY created_at ASC',
+    )
+    .all(projectId, sessionName) as SessionRow[];
+
 export function updateSession(
   id: string,
   fields: Partial<Pick<SessionRow, 'title' | 'description' | 'config_json' | 'status' | 'claude_session_id'>>,

@@ -107,6 +107,53 @@ export async function removeServer(name: string, scope: Scope, project?: string)
   await run(config.claudeBin, ['mcp', 'remove', '-s', scope, name], { cwd, timeoutMs: 30_000 });
 }
 
+export interface McpServerConfig {
+  name: string;
+  scope: 'user' | 'project';
+  transport: string; // stdio | http | sse
+  command?: string;
+  args?: string[];
+  url?: string;
+  env?: Record<string, string>;
+  headers?: Record<string, string>;
+}
+
+/**
+ * Full stored config for one server (incl. env/headers VALUES) read from the same
+ * JSON the list endpoints read. Used to prefill the edit dialog. Returns null if absent.
+ */
+export function getServerConfig(
+  name: string,
+  scope: 'user' | 'project',
+  projectName?: string,
+): McpServerConfig | null {
+  if (!NAME_RE.test(name)) throw new Error('invalid server name');
+  const path =
+    scope === 'project'
+      ? projectName
+        ? join(projectDir(projectName), '.mcp.json')
+        : null
+      : join(homedir(), '.claude.json');
+  if (!path) return null;
+  const j = readJson(path);
+  const servers = (j?.['mcpServers'] ?? {}) as Record<string, Record<string, unknown>>;
+  const cfg = servers[name];
+  if (!cfg) return null;
+  const type = typeof cfg['type'] === 'string' ? (cfg['type'] as string) : cfg['url'] ? 'http' : 'stdio';
+  const asRecord = (v: unknown): Record<string, string> | undefined =>
+    v && typeof v === 'object' ? (v as Record<string, string>) : undefined;
+  return {
+    name,
+    scope,
+    transport: type,
+    command: typeof cfg['command'] === 'string' ? (cfg['command'] as string) : undefined,
+    args: Array.isArray(cfg['args']) ? (cfg['args'] as string[]) : undefined,
+    url: typeof cfg['url'] === 'string' ? (cfg['url'] as string) : undefined,
+    env: asRecord(cfg['env']),
+    headers: asRecord(cfg['headers']),
+  };
+}
+
 /** Raw `claude mcp get <name>` output (includes a live health check). */
 export async function getServerDetail(name: string, projectName?: string): Promise<string> {
   if (!NAME_RE.test(name)) throw new Error('invalid server name');

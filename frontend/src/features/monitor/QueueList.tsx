@@ -1,4 +1,4 @@
-import { Ban, Trash2 } from 'lucide-react';
+import { Ban, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusPill } from '@/components/StatusPill';
 import { Badge } from '@/components/ui/badge';
@@ -37,13 +37,35 @@ export function QueueList({ sessionId, onSelectRun }: { sessionId: string; onSel
               </button>
               <div className="flex items-center gap-1">
                 {r.status === 'queued' ? (
-                  <Button variant="ghost" size="icon" className="size-7" title="Remove from queue" onClick={() => del.mutate(r.id)}>
-                    <Trash2 className="size-3.5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    title="Remove from queue"
+                    disabled={del.isPending && del.variables === r.id}
+                    onClick={() => del.mutate(r.id)}
+                  >
+                    {del.isPending && del.variables === r.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3.5" />
+                    )}
                   </Button>
                 ) : null}
                 {active ? (
-                  <Button variant="ghost" size="icon" className="size-7" title="Cancel" onClick={() => cancel.mutate(r.id)}>
-                    <Ban className="size-3.5 text-danger" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    title="Cancel"
+                    disabled={cancel.isPending && cancel.variables === r.id}
+                    onClick={() => cancel.mutate(r.id)}
+                  >
+                    {cancel.isPending && cancel.variables === r.id ? (
+                      <Loader2 className="size-3.5 animate-spin text-danger" />
+                    ) : (
+                      <Ban className="size-3.5 text-danger" />
+                    )}
                   </Button>
                 ) : null}
               </div>

@@ -17,13 +17,6 @@ export function ConfigForm({ value, onChange }: { value: DraftConfig; onChange: 
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <Label>Mode</Label>
-          <Select value={value.mode ?? 'full'} onChange={(e) => set({ mode: e.target.value })}>
-            <option value="full">full (recon→…→verify)</option>
-            <option value="source">source (no live instance)</option>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1">
           <Label>Permission mode</Label>
           <Select
             value={value.permissionMode ?? 'bypassPermissions'}

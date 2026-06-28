@@ -6,6 +6,7 @@ import type {
   RunRow,
   SessionConfig,
   SessionDetail,
+  SessionFamily,
   SessionReport,
   SessionRow,
 } from '@/lib/types';
@@ -14,6 +15,14 @@ export function useSession(id: string) {
   return useQuery({
     queryKey: qk.session(id),
     queryFn: () => api.get<SessionDetail>(`/api/sessions/${id}`),
+    refetchInterval: 8000,
+  });
+}
+
+export function useSessionFamily(id: string) {
+  return useQuery({
+    queryKey: qk.family(id),
+    queryFn: () => api.get<SessionFamily>(`/api/sessions/${id}/family`),
     refetchInterval: 8000,
   });
 }
@@ -49,17 +58,19 @@ export function useDeleteSession() {
   return useMutation({ mutationFn: (id: string) => api.del(`/api/sessions/${id}`) });
 }
 
-export function useFindings(id: string) {
+export function useFindings(id: string, refetchInterval: number | false = false) {
   return useQuery({
     queryKey: qk.findings(id),
     queryFn: () => api.get<AuditSnapshot>(`/api/sessions/${id}/findings`),
+    refetchInterval,
   });
 }
 
-export function useReport(id: string) {
+export function useReport(id: string, refetchInterval: number | false = false) {
   return useQuery({
     queryKey: qk.report(id),
     queryFn: () => api.get<SessionReport>(`/api/sessions/${id}/report`),
+    refetchInterval,
   });
 }
 

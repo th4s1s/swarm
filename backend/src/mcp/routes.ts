@@ -5,6 +5,7 @@ import { getProjectByName } from '../projects/repo.js';
 import {
   addServer,
   addServerJson,
+  getServerConfig,
   getServerDetail,
   listProjectServers,
   listUserServers,
@@ -65,6 +66,17 @@ export async function registerMcp(app: FastifyInstance): Promise<void> {
       const name = (req.params as { name: string }).name;
       const project = (req.query as { project?: string }).project;
       return { name, detail: await getServerDetail(name, project) };
+    });
+
+    // Full stored config (incl. env/headers values) for prefilling the edit dialog.
+    r.get('/api/mcp/:name/config', async (req) => {
+      const name = (req.params as { name: string }).name;
+      const q = req.query as { scope?: string; project?: string };
+      const sc = q.scope === 'project' ? 'project' : 'user';
+      requireProject(sc, q.project);
+      const cfg = getServerConfig(name, sc, q.project);
+      if (!cfg) throw badRequest(`unknown server "${name}"`);
+      return cfg;
     });
 
     r.post('/api/mcp', async (req, reply) => {

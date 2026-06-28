@@ -16,6 +16,7 @@ export const qk = {
   project: (id: string) => ['project', id] as const,
   branches: (id: string) => ['branches', id] as const,
   session: (id: string) => ['session', id] as const,
+  family: (id: string) => ['family', id] as const,
   findings: (id: string) => ['findings', id] as const,
   report: (id: string) => ['report', id] as const,
   runs: (id: string) => ['runs', id] as const,
@@ -27,6 +28,8 @@ export const qk = {
   usageTimeseries: (days: number) => ['usage', 'timeseries', days] as const,
   usageByProject: (project?: string) => ['usage', 'byProject', project ?? '*'] as const,
   mcp: (scope: string, project?: string) => ['mcp', scope, project ?? '*'] as const,
+  mcpConfig: (scope: string, name: string, project?: string) =>
+    ['mcpConfig', scope, name, project ?? '*'] as const,
   images: (search: string, filter: string) => ['images', search, filter] as const,
   containers: (search: string, status: string) => ['containers', search, status] as const,
   io: (minutes: number) => ['io', minutes] as const,

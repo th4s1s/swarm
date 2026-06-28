@@ -14,7 +14,6 @@ export function NewSessionDialog({ projectId }: { projectId: string }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [config, setConfig] = useState<DraftConfig>({
-    mode: 'full',
     permissionMode: 'bypassPermissions',
     effort: null,
     workflows: false,

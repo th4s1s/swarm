@@ -7,13 +7,14 @@ import type {
   ImageInfo,
   IoSample,
   McpServer,
+  McpServerConfig,
   QuotaResult,
   TokenAgg,
 } from '@/lib/types';
 
 // --- Quota ---
 export function useQuota() {
-  return useQuery({ queryKey: qk.quota, queryFn: () => api.get<QuotaResult>('/api/quota'), refetchInterval: 30_000 });
+  return useQuery({ queryKey: qk.quota, queryFn: () => api.get<QuotaResult>('/api/quota'), refetchInterval: 60_000 });
 }
 
 // --- Usage ---
@@ -83,6 +84,12 @@ export function useDeleteMcp() {
       api.del(`/api/mcp/${encodeURIComponent(name)}?scope=${scope}${project ? `&project=${encodeURIComponent(project)}` : ''}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['mcp'] }),
   });
+}
+/** Full stored config (incl. env/headers values) for prefilling the edit dialog. */
+export function fetchMcpConfig(name: string, scope: string, project?: string) {
+  return api.get<McpServerConfig>(
+    `/api/mcp/${encodeURIComponent(name)}/config?scope=${scope}${project ? `&project=${encodeURIComponent(project)}` : ''}`,
+  );
 }
 
 // --- Resources ---

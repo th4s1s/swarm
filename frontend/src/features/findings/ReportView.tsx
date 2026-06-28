@@ -7,8 +7,16 @@ import { CopyButton } from '@/components/CopyButton';
 import { Select } from '@/components/ui/input';
 import { useReport } from '@/features/sessions/api';
 
-export function ReportView({ sessionId, focusFindingId }: { sessionId: string; focusFindingId?: string | null }) {
-  const q = useReport(sessionId);
+export function ReportView({
+  sessionId,
+  focusFindingId,
+  refetchInterval = false,
+}: {
+  sessionId: string;
+  focusFindingId?: string | null;
+  refetchInterval?: number | false;
+}) {
+  const q = useReport(sessionId, refetchInterval);
   const [sel, setSel] = useState<string>('');
 
   if (q.isLoading) return <Loading label="Loading report…" />;

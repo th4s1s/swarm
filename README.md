@@ -48,6 +48,14 @@ Browser ──► frontend (React + Vite + Tailwind, neon-green UI)   :6767
 
 ## Quick start
 
+One command (installs deps on first run, starts both servers, Ctrl-C stops both):
+
+```bash
+./start.sh                  # backend :8787 + frontend :6767
+```
+
+Or run the two halves yourself:
+
 ```bash
 # 1) backend  (terminal A)
 cd backend
@@ -69,6 +77,7 @@ Create a project (git URL or zip), start a session, pick a phase (or `full`/`sou
 ```
 backend/    Fastify + TS API, runner, ops modules, tests
 frontend/   React + Vite + Tailwind SPA
+start.sh    one-command dev launcher (backend + frontend)
 PLAN.md     product spec
 ```
 

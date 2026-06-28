@@ -21,7 +21,7 @@ export const Select = React.forwardRef<
   HTMLSelectElement,
   React.SelectHTMLAttributes<HTMLSelectElement>
 >(({ className, children, ...props }, ref) => (
-  <select ref={ref} className={cn(base, 'h-9 cursor-pointer', className)} {...props}>
+  <select ref={ref} className={cn(base, 'h-9 cursor-pointer py-1 leading-normal', className)} {...props}>
     {children}
   </select>
 ));

@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Play, RefreshCw, Square, Trash2 } from 'lucide-react';
+import { Loader2, Play, RefreshCw, Square, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -95,8 +95,8 @@ function Containers() {
           <option value="created">created</option>
         </Select>
         {sel.size > 0 ? (
-          <Button variant="danger" size="sm" onClick={() => setConfirm(true)}>
-            <Trash2 /> Delete {sel.size}
+          <Button variant="danger" size="sm" disabled={del.isPending} onClick={() => setConfirm(true)}>
+            {del.isPending ? <Loader2 className="animate-spin" /> : <Trash2 />} {del.isPending ? 'Deleting…' : `Delete ${sel.size}`}
           </Button>
         ) : null}
       </div>
@@ -114,7 +114,9 @@ function Containers() {
               </TR>
             </THead>
             <TBody>
-              {rows.map((c) => (
+              {rows.map((c) => {
+                const busy = action.isPending && action.variables?.id === c.id;
+                return (
                 <TR key={c.id}>
                   <TD><input type="checkbox" className="accent-[#29ffa0]" checked={sel.has(c.id)} onChange={() => toggle(c.id)} /></TD>
                   <TD className="font-medium text-fg">{c.name}</TD>
@@ -126,7 +128,9 @@ function Containers() {
                   <TD className="text-muted">{c.stats?.pids ?? '-'}</TD>
                   <TD>
                     <div className="flex items-center gap-1">
-                      {c.state === 'running' ? (
+                      {busy ? (
+                        <IconBtn title="Working…" disabled onClick={() => {}}><Loader2 className="size-3.5 animate-spin" /></IconBtn>
+                      ) : c.state === 'running' ? (
                         <>
                           <IconBtn title="Stop" onClick={() => action.mutate({ id: c.id, action: 'stop' })}><Square className="size-3.5" /></IconBtn>
                           <IconBtn title="Restart" onClick={() => action.mutate({ id: c.id, action: 'restart' })}><RefreshCw className="size-3.5" /></IconBtn>
@@ -137,7 +141,8 @@ function Containers() {
                     </div>
                   </TD>
                 </TR>
-              ))}
+                );
+              })}
             </TBody>
           </Table>
         </Card>
@@ -178,8 +183,8 @@ function Images() {
           <option value="unused">unused</option>
         </Select>
         {sel.size > 0 ? (
-          <Button variant="danger" size="sm" onClick={() => setConfirm(true)}>
-            <Trash2 /> Delete {sel.size}
+          <Button variant="danger" size="sm" disabled={del.isPending} onClick={() => setConfirm(true)}>
+            {del.isPending ? <Loader2 className="animate-spin" /> : <Trash2 />} {del.isPending ? 'Deleting…' : `Delete ${sel.size}`}
           </Button>
         ) : null}
       </div>
@@ -298,9 +303,19 @@ function IoChart({
   );
 }
 
-function IconBtn({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
+function IconBtn({
+  title,
+  onClick,
+  children,
+  disabled,
+}: {
+  title: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
   return (
-    <Button variant="ghost" size="icon" className="size-7" title={title} onClick={onClick}>
+    <Button variant="ghost" size="icon" className="size-7" title={title} onClick={onClick} disabled={disabled}>
       {children}
     </Button>
   );

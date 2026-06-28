@@ -20,6 +20,7 @@ import {
   getSessionById,
   insertSession,
   listChildren,
+  listFamily,
   updateSession,
   type SessionRow,
 } from './repo.js';
@@ -117,7 +118,6 @@ export function forkSession(
   input: { title: string; description?: string | null; findingId?: string | null; config?: Partial<SessionConfig> },
 ): SessionRow {
   const parent = mustSession(parentId);
-  if (parent.is_fork) throw badRequest('cannot fork a fork; fork the root session');
   if (!parent.claude_session_id) {
     throw conflict('parent has no claude session yet - run at least one phase before forking');
   }
@@ -270,6 +270,38 @@ export function getDetail(id: string): SessionDetail {
     active_runs: activeRuns(s.id),
     child_sessions: children,
   };
+}
+
+export interface FamilyMember {
+  id: string;
+  title: string;
+  parent_session_id: string | null;
+  is_fork: boolean;
+  fork_finding_id: string | null;
+  status: string;
+  claude_session_id: string | null;
+}
+
+export interface SessionFamily {
+  root_id: string | null;
+  members: FamilyMember[];
+}
+
+/** The whole fork family (root + all forks, recursively) sharing this session's workspace. */
+export function getFamily(id: string): SessionFamily {
+  const s = mustSession(id);
+  const rows = listFamily(s.project_id, s.session_name);
+  const members: FamilyMember[] = rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    parent_session_id: r.parent_session_id,
+    is_fork: Boolean(r.is_fork),
+    fork_finding_id: r.fork_finding_id,
+    status: r.status,
+    claude_session_id: r.claude_session_id,
+  }));
+  const root = rows.find((r) => !r.is_fork || !r.parent_session_id) ?? rows[0] ?? null;
+  return { root_id: root?.id ?? null, members };
 }
 
 export function getFindings(id: string): AuditSnapshot {

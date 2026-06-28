@@ -1,5 +1,6 @@
-import { Gauge, Mail, ShieldCheck } from 'lucide-react';
+import { Gauge, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/AppShell';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorNote, Loading } from '@/components/ui/misc';
 import { untilTime } from '@/lib/format';
@@ -21,7 +22,15 @@ export function QuotaPage() {
   const q = useQuota();
   return (
     <div>
-      <PageHeader title="Quota" subtitle="Claude account usage windows" />
+      <PageHeader
+        title="Quota"
+        subtitle="Claude account usage windows - auto-refreshes every minute"
+        actions={
+          <Button variant="subtle" size="sm" onClick={() => q.refetch()} disabled={q.isFetching}>
+            <RefreshCw className={q.isFetching ? 'animate-spin' : ''} /> Refresh
+          </Button>
+        }
+      />
       <div className="p-6">
         {q.isLoading ? (
           <Loading />
