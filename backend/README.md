@@ -69,8 +69,9 @@ exactly as it did standalone.
 ## Notes
 
 - Per-session Claude config (`config` on create/PATCH, defaults via `PATCH /api/config`):
-  `mode`, `permissionMode`, `model`, **`effort`** (`low|medium|high|xhigh|max` → `--effort`;
-  plus **`ultracode`** = xhigh + workflows, mapped to `--effort xhigh` + a workflow-mode directive),
+  `mode`, `permissionMode`, `model`, **`effort`** (`low|medium|high|xhigh|max` → `--effort`),
+  **`workflows`** (`true|false|null`; "ultracode" = `effort=xhigh` + `workflows=true`, which appends a
+  workflow-mode directive nudging the skill's gateless Workflow-accelerated path),
   **`thinking`** (`true|false|null` → extended thinking via `MAX_THINKING_TOKENS`), `thinkingTokens`.
 - Usage cost is **estimated** from public list prices; subscription plans aren't billed per call.
 - Runs use `--permission-mode bypassPermissions` (this host is a controlled audit sandbox); change via

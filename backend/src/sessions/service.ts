@@ -29,6 +29,7 @@ export interface SessionConfig {
   permissionMode: string; // bypassPermissions | acceptEdits | plan | default
   model: string | null;
   effort: string | null; // low | medium | high | xhigh | max | null (model default)
+  workflows: boolean | null; // true = ultracode (Workflow tool / gateless); pair with effort=xhigh
   thinking: boolean | null; // true=on, false=off, null=model/effort default
   thinkingTokens: number | null; // budget when thinking is on (MAX_THINKING_TOKENS)
   [k: string]: unknown;
@@ -50,6 +51,7 @@ export function defaultConfig(): SessionConfig {
     permissionMode: effective('default_permission_mode', config.defaultPermissionMode),
     model: effective('default_model', config.defaultModel) || null,
     effort: effective('default_effort', config.defaultEffort) || null,
+    workflows: parseBoolNull(effective('default_workflows', config.defaultWorkflows)),
     thinking,
     thinkingTokens: Number(tokensRaw) || DEFAULT_THINKING_TOKENS,
   };

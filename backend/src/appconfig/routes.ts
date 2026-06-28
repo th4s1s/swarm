@@ -13,6 +13,7 @@ const EDITABLE: Record<string, string> = {
   default_permission_mode: config.defaultPermissionMode,
   default_model: config.defaultModel,
   default_effort: config.defaultEffort,
+  default_workflows: config.defaultWorkflows,
   default_thinking: config.defaultThinking,
   default_thinking_tokens: String(config.defaultThinkingTokens),
   max_concurrent_runs: String(config.maxConcurrentRuns),
@@ -29,7 +30,8 @@ const patchSchema = z
       .enum(['bypassPermissions', 'acceptEdits', 'plan', 'default', 'dontAsk'])
       .optional(),
     default_model: z.string().max(80).optional(),
-    default_effort: z.enum(['', 'low', 'medium', 'high', 'xhigh', 'max', 'ultracode']).optional(),
+    default_effort: z.enum(['', 'low', 'medium', 'high', 'xhigh', 'max']).optional(),
+    default_workflows: z.enum(['', 'on', 'off']).optional(),
     default_thinking: z.enum(['', 'on', 'off']).optional(),
     default_thinking_tokens: z.coerce.number().int().min(1024).max(200000).optional(),
     max_concurrent_runs: z.coerce.number().int().min(1).max(16).optional(),

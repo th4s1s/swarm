@@ -62,6 +62,7 @@ export const config = {
   defaultPermissionMode: env('DEFAULT_PERMISSION_MODE', 'bypassPermissions'),
   defaultMode: env('DEFAULT_MODE', 'full'),
   defaultEffort: env('DEFAULT_EFFORT', ''), // '' = model default (low|medium|high|xhigh|max)
+  defaultWorkflows: env('DEFAULT_WORKFLOWS', ''), // '' = default; 'on'|'off' (ultracode = xhigh + on)
   defaultThinking: env('DEFAULT_THINKING', ''), // '' = model default; 'on'|'off' to force
   defaultThinkingTokens: envInt('DEFAULT_THINKING_TOKENS', 10_000),
   maxConcurrentRuns: envInt('MAX_CONCURRENT_RUNS', 2),

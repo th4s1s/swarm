@@ -104,11 +104,7 @@ describe('buildClaudeArgs', () => {
     expect(buildClaudeArgs({ ...base, effort: null })).not.toContain('--effort');
     expect(buildClaudeArgs({ ...base, effort: 'bogus' })).not.toContain('--effort');
   });
-  it('maps ultracode to --effort xhigh', () => {
-    const a = buildClaudeArgs({ ...base, effort: 'ultracode' });
-    expect(a[a.indexOf('--effort') + 1]).toBe('xhigh');
-  });
-  it('appends a system prompt when provided', () => {
+  it('appends a system prompt when provided (the workflows/ultracode directive)', () => {
     const a = buildClaudeArgs({ ...base, appendSystemPrompt: 'ultracode is on' });
     expect(a[a.indexOf('--append-system-prompt') + 1]).toBe('ultracode is on');
   });
