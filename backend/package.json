@@ -1,9 +1,9 @@
 {
-  "name": "vibehack-app-backend",
+  "name": "swarm-backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Backend for the vibehack source-code-audit app - drives the Claude Code CLI to run the vibehack audit skill",
+  "description": "Backend for SWARM, a source-code-audit app that drives the Claude Code CLI to run the vibehack audit skill",
   "engines": {
     "node": ">=22"
   },

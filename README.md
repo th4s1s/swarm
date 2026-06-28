@@ -9,7 +9,7 @@ watch each run stream live in a Claude-CLI-style terminal, fork sessions to veri
 against a live instance, and keep an eye on Claude quota/usage and Docker resources - all from one UI.
 
 The audit methodology itself lives in a separate Claude Code skill, **`vibehack`**
-(repo: `th4s1s/vibe-hack-skill`, installed at `/vibe/hack/skill`). SWARM orchestrates that skill; only
+(repo: `th4s1s/vibehack`, installed at `/vibe/hack/skill`). SWARM orchestrates that skill; only
 the Claude CLI can run locally-installed slash-command skills, so the backend drives the `claude` binary
 directly.
 
