@@ -18,7 +18,7 @@ directly.
 ## Architecture
 
 ```
-Browser ──► frontend (React + Vite + Tailwind, neon-green UI)   :5173
+Browser ──► frontend (React + Vite + Tailwind, neon-green UI)   :6767
                 │  REST /api  +  WebSocket /ws   (Vite dev proxy → :8787)
                 ▼
             backend (Fastify + TypeScript + SQLite)             :8787
@@ -58,10 +58,10 @@ npm start                   # http://127.0.0.1:8787
 # 2) frontend (terminal B)
 cd frontend
 npm install
-npm run dev                 # http://localhost:5173  (proxies /api + /ws to the backend)
+npm run dev                 # http://localhost:6767  (proxies /api + /ws to the backend)
 ```
 
-Open **http://localhost:5173** and log in (default `admin` / `vibhackiscool`, configurable).
+Open **http://localhost:6767** and log in (default `admin` / `vibhackiscool`, configurable).
 Create a project (git URL or zip), start a session, pick a phase (or `full`/`source` mode), and **Run**.
 
 ## Repository layout

@@ -18,12 +18,12 @@ Stack: **React + Vite + TypeScript**, **Tailwind CSS** + shadcn-style components
 
 ```bash
 npm install
-npm run dev          # Vite dev server on http://localhost:5173
+npm run dev          # Vite dev server on http://localhost:6767
 # npm run build      # type-check + production build to dist/
 # npm run typecheck  # tsc --noEmit
 ```
 
-Open **http://localhost:5173** and log in (default `admin` / `vibhackiscool`).
+Open **http://localhost:6767** and log in (default `admin` / `vibhackiscool`).
 
 ### How it talks to the backend
 

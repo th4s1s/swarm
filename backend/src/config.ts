@@ -51,7 +51,7 @@ export const config = {
   jwtSecret: resolveJwtSecret(),
   sessionTtl: envInt('SESSION_TTL', 86_400),
 
-  corsOrigin: env('CORS_ORIGIN', 'http://localhost:5173'),
+  corsOrigin: env('CORS_ORIGIN', 'http://localhost:6767'),
 
   projectsDir: env('PROJECTS_DIR', '/vibe/hack/projects'),
   auditsDir: env('AUDITS_DIR', '/vibe/hack/audits'),
