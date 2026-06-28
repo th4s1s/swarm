@@ -35,20 +35,20 @@ export function AppShell() {
   const email = quota.data?.account.email ?? me.data?.user.username ?? '';
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface/60">
-        <div className="flex items-center gap-2.5 px-4 py-4">
-          <SwarmMark size={26} />
-          <span className="font-mono text-lg font-bold tracking-[0.25em] text-primary text-glow">SWARM</span>
+    <div className="flex h-screen flex-col overflow-hidden">
+      <header className="flex shrink-0 items-center gap-4 overflow-x-auto border-b border-line bg-surface/60 px-4 py-2.5">
+        <div className="flex shrink-0 items-center gap-2.5">
+          <SwarmMark size={24} />
+          <span className="font-mono text-base font-bold tracking-[0.25em] text-primary text-glow">SWARM</span>
         </div>
-        <nav className="flex-1 px-2 py-2">
+        <nav className="flex items-center gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 cn(
-                  'mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                  'flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors',
                   isActive
                     ? 'bg-primary-dim text-primary shadow-glow-sm'
                     : 'text-fg/70 hover:bg-surface-2 hover:text-fg',
@@ -60,23 +60,20 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-line p-3">
-          <div className="mb-2 flex items-center gap-2 px-1 text-xs text-muted">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <span className="flex items-center gap-2 px-1 text-xs text-muted" title={email}>
             <TerminalSquare className="size-3.5 text-primary/60" />
-            <span className="truncate" title={email}>
-              {email || 'account'}
-            </span>
-          </div>
+            <span className="max-w-[16rem] truncate">{email || 'account'}</span>
+          </span>
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start"
             onClick={() => logout.mutate(undefined, { onSuccess: () => nav('/login', { replace: true }) })}
           >
             <LogOut /> Sign out
           </Button>
         </div>
-      </aside>
+      </header>
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>

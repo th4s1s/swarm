@@ -21,6 +21,7 @@ import { RunControls } from '@/features/monitor/RunControls';
 import { QueueList } from '@/features/monitor/QueueList';
 import { FindingsPanel } from '@/features/findings/FindingsPanel';
 import { ReportView } from '@/features/findings/ReportView';
+import { LiveNoteEditor } from '@/features/projects/LiveNoteEditor';
 import { ForkDialog } from './ForkDialog';
 import { SessionConfigCard } from './SessionConfigCard';
 import { useRunEvents, useRunnerOptions, useRuns, useSession, useSessionFamily } from './api';
@@ -87,12 +88,18 @@ export function SessionView() {
         actions={<ForkDialog sessionId={s.id} findings={findings} disabled={!s.claude_session_id} />}
       />
 
-      {/* Fork family tree (root + all forks, recursively) - always visible on every member */}
-      {familyMembers.length > 1 ? <ForkTree members={familyMembers} currentId={s.id} /> : null}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 lg:flex-row">
+        {/* Fork family tree (root + all forks, recursively) - left sidebar so it never
+            steals the monitor's height; scrolls within its own column. */}
+        {familyMembers.length > 1 ? (
+          <aside className="w-full shrink-0 overflow-y-auto lg:w-56">
+            <ForkTree members={familyMembers} currentId={s.id} />
+          </aside>
+        ) : null}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-5">
-        {/* Monitor + run controls */}
-        <div className="flex min-h-0 flex-col lg:col-span-3">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-5">
+          {/* Monitor + run controls */}
+          <div className="flex min-h-0 flex-col lg:col-span-3">
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
             <div className="flex items-center justify-between border-b border-line px-3 py-2">
               <Tabs value={monitorTab} onValueChange={(v) => setMonitorTab(v as 'terminal' | 'json')}>
@@ -129,43 +136,48 @@ export function SessionView() {
           ) : null}
         </div>
 
-        {/* Right: findings / report / queue / notes / config */}
-        <div className="flex min-h-0 flex-col lg:col-span-2">
-          <Tabs defaultValue="findings" className="flex min-h-0 flex-1 flex-col">
-            <TabsList>
-              <TabsTrigger value="findings">Findings</TabsTrigger>
-              <TabsTrigger value="report">Report</TabsTrigger>
-              <TabsTrigger value="queue">Queue</TabsTrigger>
-              <TabsTrigger value="notes">Notes</TabsTrigger>
-              <TabsTrigger value="config">Config</TabsTrigger>
-            </TabsList>
-            <Card className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden">
-              <TabsContent value="findings" className="min-h-0 flex-1 overflow-y-auto p-3">
-                <FindingsPanel sessionId={id} refetchInterval={liveInterval} />
-              </TabsContent>
-              <TabsContent value="report" className="min-h-0 flex-1 overflow-hidden">
-                <ReportView sessionId={id} focusFindingId={s.fork_finding_id} refetchInterval={liveInterval} />
-              </TabsContent>
-              <TabsContent value="queue" className="min-h-0 flex-1 overflow-y-auto p-3">
-                <QueueList sessionId={id} onSelectRun={(r) => setViewRun(r)} />
-              </TabsContent>
-              <TabsContent value="notes" className="min-h-0 flex-1 overflow-y-auto p-3">
-                {s.resume_note ? (
-                  <article className="markdown text-sm leading-relaxed text-fg/90">
-                    <Markdown remarkPlugins={[remarkGfm]}>{s.resume_note}</Markdown>
-                  </article>
-                ) : (
-                  <div className="text-xs text-muted">
-                    No resume note yet. The audit writes one once recon/audit has run (it holds pipeline
-                    state, the live-instance pointer, and the fork inventory).
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="config" className="min-h-0 flex-1 overflow-y-auto p-3">
-                <SessionConfigCard sessionId={id} config={s.config} disabled={running} />
-              </TabsContent>
-            </Card>
-          </Tabs>
+          {/* Right: findings / report / queue / resume note / live note / config */}
+          <div className="flex min-h-0 flex-col lg:col-span-2">
+            <Tabs defaultValue="findings" className="flex min-h-0 flex-1 flex-col">
+              <TabsList className="flex flex-wrap">
+                <TabsTrigger value="findings">Findings</TabsTrigger>
+                <TabsTrigger value="report">Report</TabsTrigger>
+                <TabsTrigger value="queue">Queue</TabsTrigger>
+                <TabsTrigger value="notes">Resume Note</TabsTrigger>
+                <TabsTrigger value="live">Live Note</TabsTrigger>
+                <TabsTrigger value="config">Config</TabsTrigger>
+              </TabsList>
+              <Card className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden">
+                <TabsContent value="findings" className="min-h-0 flex-1 overflow-y-auto p-3">
+                  <FindingsPanel sessionId={id} refetchInterval={liveInterval} />
+                </TabsContent>
+                <TabsContent value="report" className="min-h-0 flex-1 overflow-hidden">
+                  <ReportView sessionId={id} focusFindingId={s.fork_finding_id} refetchInterval={liveInterval} />
+                </TabsContent>
+                <TabsContent value="queue" className="min-h-0 flex-1 overflow-y-auto p-3">
+                  <QueueList sessionId={id} onSelectRun={(r) => setViewRun(r)} />
+                </TabsContent>
+                <TabsContent value="notes" className="min-h-0 flex-1 overflow-y-auto p-3">
+                  {s.resume_note ? (
+                    <article className="markdown text-sm leading-relaxed text-fg/90">
+                      <Markdown remarkPlugins={[remarkGfm]}>{s.resume_note}</Markdown>
+                    </article>
+                  ) : (
+                    <div className="text-xs text-muted">
+                      No resume note yet. The audit writes one once recon/audit has run (it holds pipeline
+                      state, the live-instance pointer, and the fork inventory).
+                    </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="live" className="min-h-0 flex-1 overflow-y-auto p-3">
+                  <LiveNoteEditor projectId={s.project.id} />
+                </TabsContent>
+                <TabsContent value="config" className="min-h-0 flex-1 overflow-y-auto p-3">
+                  <SessionConfigCard sessionId={id} config={s.config} disabled={running} />
+                </TabsContent>
+              </Card>
+            </Tabs>
+          </div>
         </div>
       </div>
     </div>
@@ -191,27 +203,26 @@ function ForkTree({ members, currentId }: { members: FamilyMember[]; currentId: 
   for (const r of byParent.get(null) ?? []) walk(r, 0);
 
   return (
-    <div className="flex flex-col gap-1 border-b border-line px-6 py-2">
-      <span className="text-[11px] uppercase tracking-wider text-muted">sessions</span>
-      <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col gap-1 rounded-lg border border-line bg-surface/60 p-2">
+      <span className="px-1 text-[11px] uppercase tracking-wider text-muted">sessions</span>
+      <div className="flex flex-col items-stretch gap-1">
         {rows.map(({ m, depth }) => (
           <Link
             key={m.id}
             to={`/sessions/${m.id}`}
-            style={{ marginLeft: depth * 18 }}
-            title={m.fork_finding_id ? `verifies ${m.fork_finding_id}` : undefined}
+            style={{ marginLeft: depth * 14 }}
+            title={m.fork_finding_id ? `${m.title} - verifies ${m.fork_finding_id}` : m.title}
             className={cn(
-              'flex w-fit items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs',
+              'flex max-w-full items-center gap-1.5 overflow-hidden rounded-md border px-2 py-1 text-xs',
               m.id === currentId
                 ? 'border-primary/60 bg-primary-dim text-primary'
                 : 'border-line text-muted hover:text-fg',
             )}
           >
-            {depth > 0 ? <span className="text-muted/50">└</span> : null}
-            {m.is_fork ? <GitFork className="size-3" /> : <GitBranch className="size-3" />}
-            {m.title}
-            {m.fork_finding_id ? <span className="font-mono text-[10px] text-muted/70">{m.fork_finding_id}</span> : null}
-            <StatusPill status={m.status} className="text-[10px]" />
+            {depth > 0 ? <span className="shrink-0 text-muted/50">└</span> : null}
+            {m.is_fork ? <GitFork className="size-3 shrink-0" /> : <GitBranch className="size-3 shrink-0" />}
+            <span className="truncate">{m.title}</span>
+            <StatusPill status={m.status} className="ml-auto shrink-0 text-[10px]" />
           </Link>
         ))}
       </div>

@@ -19,6 +19,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ErrorNote, Loading } from '@/components/ui/misc';
 import { shortSha } from '@/lib/format';
 import { NewSessionDialog } from '@/features/sessions/NewSessionDialog';
+import { LiveNoteEditor } from './LiveNoteEditor';
 import {
   useApplyUpdate,
   useBranches,
@@ -66,7 +67,7 @@ export function ProjectDetailPage() {
         <div className="flex flex-col gap-4 lg:col-span-2">
           <MetaCard id={id} title={p.title} description={p.description} />
           {p.is_git ? <GitCard id={id} currentRef={p.current_ref} currentCommit={p.current_commit} /> : <ZipCard id={id} />}
-          <LiveNoteCard id={id} note={p.live_instance_note} />
+          <LiveNoteCard id={id} />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -249,27 +250,12 @@ function ZipCard({ id }: { id: string }) {
   );
 }
 
-function LiveNoteCard({ id, note }: { id: string; note: string | null }) {
-  const upd = useUpdateProject(id);
-  const [v, setV] = useState(note ?? '');
+function LiveNoteCard({ id }: { id: string }) {
   return (
     <Card>
       <CardHeader><CardTitle>Live-instance note</CardTitle></CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        <Textarea
-          value={v}
-          onChange={(e) => setV(e.target.value)}
-          className="min-h-[280px]"
-          placeholder="Deployment mode, endpoints, credentials, liveness command… (read by verify forks)"
-        />
-        <Button
-          size="sm"
-          className="self-start"
-          disabled={v === (note ?? '') || upd.isPending}
-          onClick={() => upd.mutate({ live_instance_note: v })}
-        >
-          <Save /> Save note
-        </Button>
+      <CardContent>
+        <LiveNoteEditor projectId={id} />
       </CardContent>
     </Card>
   );
