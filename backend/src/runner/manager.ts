@@ -135,20 +135,27 @@ class RunnerManager {
     hub.broadcast(run.session_id, { kind: 'run', runId: run.id, status: 'running', phase: run.phase, mode: run.mode });
     hub.broadcast(run.session_id, { kind: 'session', status: 'running' });
 
+    // Extended thinking is controlled by MAX_THINKING_TOKENS: a positive budget
+    // enables it, 0 disables it; omit entirely to use the model/effort default.
+    const env: NodeJS.ProcessEnv = {
+      VIBEHACK_APP: '1',
+      VIBEHACK_AUDIT_DIR: auditDir(project.name, session.session_name),
+      VIBEHACK_PROJECT: project.name,
+    };
+    if (cfg.thinking === true) env.MAX_THINKING_TOKENS = String(cfg.thinkingTokens ?? 10_000);
+    else if (cfg.thinking === false) env.MAX_THINKING_TOKENS = '0';
+
     const handle = spawnClaude(
       {
         prompt: run.composed_prompt ?? '',
         cwd: projectDir(project.name),
-        env: {
-          VIBEHACK_APP: '1',
-          VIBEHACK_AUDIT_DIR: auditDir(project.name, session.session_name),
-          VIBEHACK_PROJECT: project.name,
-        },
+        env,
         sessionId: sessionIdFlag,
         resume,
         fork,
         permissionMode: cfg.permissionMode,
         model: cfg.model,
+        effort: cfg.effort,
         includePartial: true,
       },
       {

@@ -61,6 +61,9 @@ export const config = {
   defaultModel: env('DEFAULT_MODEL', ''),
   defaultPermissionMode: env('DEFAULT_PERMISSION_MODE', 'bypassPermissions'),
   defaultMode: env('DEFAULT_MODE', 'full'),
+  defaultEffort: env('DEFAULT_EFFORT', ''), // '' = model default (low|medium|high|xhigh|max)
+  defaultThinking: env('DEFAULT_THINKING', ''), // '' = model default; 'on'|'off' to force
+  defaultThinkingTokens: envInt('DEFAULT_THINKING_TOKENS', 10_000),
   maxConcurrentRuns: envInt('MAX_CONCURRENT_RUNS', 2),
 
   resourceSampleMs: envInt('RESOURCE_SAMPLE_MS', 5_000),

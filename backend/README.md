@@ -68,6 +68,9 @@ exactly as it did standalone.
 
 ## Notes
 
+- Per-session Claude config (`config` on create/PATCH, defaults via `PATCH /api/config`):
+  `mode`, `permissionMode`, `model`, **`effort`** (`low|medium|high|xhigh|max` → `--effort`),
+  **`thinking`** (`true|false|null` → extended thinking via `MAX_THINKING_TOKENS`), `thinkingTokens`.
 - Usage cost is **estimated** from public list prices; subscription plans aren't billed per call.
 - Runs use `--permission-mode bypassPermissions` (this host is a controlled audit sandbox); change via
   per-session config or `PATCH /api/config` (`default_permission_mode`).

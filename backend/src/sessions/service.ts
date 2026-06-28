@@ -28,14 +28,30 @@ export interface SessionConfig {
   mode: string; // full | source
   permissionMode: string; // bypassPermissions | acceptEdits | plan | default
   model: string | null;
+  effort: string | null; // low | medium | high | xhigh | max | null (model default)
+  thinking: boolean | null; // true=on, false=off, null=model/effort default
+  thinkingTokens: number | null; // budget when thinking is on (MAX_THINKING_TOKENS)
   [k: string]: unknown;
 }
 
+export const DEFAULT_THINKING_TOKENS = 10_000;
+
+function parseBoolNull(v: string): boolean | null {
+  if (v === 'true' || v === '1' || v === 'on') return true;
+  if (v === 'false' || v === '0' || v === 'off') return false;
+  return null;
+}
+
 export function defaultConfig(): SessionConfig {
+  const thinking = parseBoolNull(effective('default_thinking', config.defaultThinking));
+  const tokensRaw = effective('default_thinking_tokens', String(config.defaultThinkingTokens));
   return {
     mode: effective('default_mode', config.defaultMode),
     permissionMode: effective('default_permission_mode', config.defaultPermissionMode),
     model: effective('default_model', config.defaultModel) || null,
+    effort: effective('default_effort', config.defaultEffort) || null,
+    thinking,
+    thinkingTokens: Number(tokensRaw) || DEFAULT_THINKING_TOKENS,
   };
 }
 
