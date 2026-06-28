@@ -182,7 +182,11 @@ export function getReport(id: string): SessionReport {
   const consolidated = readFileOrNull(consolidatedReportPath(project.name, s.session_name));
   let focused: VulnReportFile | null = null;
   if (s.fork_finding_id) {
-    focused = reports.find((r) => r.finding_id === s.fork_finding_id) ?? null;
+    // The skill may name the report by the original id (G2-F1) or the final id (F-1).
+    const snap = readAuditSnapshot(auditDbPath(project.name, s.session_name));
+    const finalId = snap.findings.find((f) => f.id === s.fork_finding_id)?.final_id ?? null;
+    focused =
+      reports.find((r) => r.finding_id === s.fork_finding_id || (finalId && r.finding_id === finalId)) ?? null;
   }
   return { consolidated, reports, focused };
 }
