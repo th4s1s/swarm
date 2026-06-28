@@ -12,6 +12,9 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   server: {
+    // Listen on all interfaces so the dev server is reachable from other hosts
+    // on the LAN (e.g. http://<machine-ip>:6767), not just localhost.
+    host: true,
     port: 6767,
     proxy: {
       '/api': { target: BACKEND, changeOrigin: true },
