@@ -13,10 +13,6 @@ import { SwarmMark } from '@/components/SwarmMark';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLogout, useMe } from '@/features/auth/useAuth';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-import { qk } from '@/lib/query';
-import type { QuotaResult } from '@/lib/types';
 
 const NAV = [
   { to: '/projects', label: 'Projects', icon: FolderGit2 },
@@ -31,8 +27,7 @@ export function AppShell() {
   const nav = useNavigate();
   const logout = useLogout();
   const me = useMe();
-  const quota = useQuery({ queryKey: qk.quota, queryFn: () => api.get<QuotaResult>('/api/quota'), staleTime: 60_000 });
-  const email = quota.data?.account.email ?? me.data?.user.username ?? '';
+  const username = me.data?.user.username ?? '';
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -61,9 +56,9 @@ export function AppShell() {
           ))}
         </nav>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <span className="flex items-center gap-2 px-1 text-xs text-muted" title={email}>
+          <span className="flex items-center gap-2 px-1 text-xs text-muted" title={username}>
             <TerminalSquare className="size-3.5 text-primary/60" />
-            <span className="max-w-[16rem] truncate">{email || 'account'}</span>
+            <span className="max-w-[16rem] truncate">{username || 'account'}</span>
           </span>
           <Button
             variant="ghost"
