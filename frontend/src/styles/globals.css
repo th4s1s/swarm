@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* RGB triples so Tailwind's `/<alpha>` opacity modifiers produce valid CSS */
+  --bg: 7 11 9;
+  --surface: 13 20 17;
+  --surface-2: 18 26 22;
+  --muted: 107 128 121;
+  --fg: 215 230 223;
+
+  --primary: 41 255 160;
+  --primary-strong: 0 230 118;
+
+  --sev-critical: 255 59 107;
+  --sev-high: 255 138 61;
+  --sev-medium: 255 210 63;
+  --sev-low: 57 208 255;
+  --sev-info: 138 160 160;
+
+  --danger: 255 59 107;
+  --warn: 255 210 63;
+
+  /* literals (used with their own alpha, not via the alpha mechanism) */
+  --line: rgba(120, 255, 180, 0.12);
+  --primary-dim: rgba(41, 255, 160, 0.14);
+}
+
+* {
+  border-color: var(--line);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: theme('fontFamily.sans');
+  -webkit-font-smoothing: antialiased;
+  /* faint dotted grid + soft radial green glow */
+  background-image:
+    radial-gradient(900px 500px at 80% -10%, rgba(41, 255, 160, 0.06), transparent 60%),
+    radial-gradient(700px 500px at 0% 110%, rgba(0, 230, 118, 0.05), transparent 55%),
+    radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: auto, auto, 22px 22px;
+  background-attachment: fixed;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(41, 255, 160, 0.18);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(41, 255, 160, 0.34);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 10px rgba(41, 255, 160, 0.55);
+  }
+  .bg-grid-fade {
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+}
+
+/* Markdown rendering (report view) */
+.markdown h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: rgb(var(--primary));
+  margin: 0.4rem 0 0.6rem;
+}
+.markdown h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(var(--fg));
+  margin: 1rem 0 0.4rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.2rem;
+}
+.markdown h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgb(var(--fg));
+  margin: 0.8rem 0 0.3rem;
+}
+.markdown p {
+  margin: 0.5rem 0;
+}
+.markdown ul,
+.markdown ol {
+  margin: 0.5rem 0;
+  padding-left: 1.4rem;
+  list-style: disc;
+}
+.markdown ol {
+  list-style: decimal;
+}
+.markdown li {
+  margin: 0.2rem 0;
+}
+.markdown a {
+  color: rgb(var(--primary));
+  text-decoration: underline;
+}
+.markdown code {
+  font-family: theme('fontFamily.mono');
+  font-size: 0.85em;
+  background: rgb(var(--surface-2));
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  color: rgb(var(--sev-low));
+}
+.markdown pre {
+  background: #060908;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.6rem 0;
+}
+.markdown pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: rgb(var(--fg));
+}
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.6rem 0;
+  font-size: 0.85em;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--line);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+.markdown blockquote {
+  border-left: 2px solid rgb(var(--primary));
+  padding-left: 0.8rem;
+  color: rgb(var(--muted));
+  margin: 0.5rem 0;
+}
+.markdown strong {
+  color: rgb(var(--fg));
+  font-weight: 600;
+}
