@@ -1,16 +1,15 @@
-# vibehack app — backend
+# SWARM — backend
 
-Backend for the source-code-audit web app. It drives the **Claude Code CLI** to run the
-`vibehack` audit skill (at `/vibe/hack/skill`), manages projects and audit sessions, streams
-each run live over WebSocket, forks sessions for per-finding verification, and exposes ops
-panels (MCP, Claude quota, token usage, Docker resources, app config).
+Backend for **SWARM**, a parallel-agent source-code security-audit app. It drives the
+**Claude Code CLI** to run the `vibehack` audit skill (at `/vibe/hack/skill`), manages projects and
+audit sessions, streams each run live over WebSocket, forks sessions for per-finding verification, and
+exposes ops panels (MCP, Claude quota, token usage, Docker resources, app config).
 
 Stack: **Fastify + TypeScript**, **SQLite** (`better-sqlite3`). Drives the `claude` binary
-(only the CLI can run locally-installed slash-command skills). The implementation plan is at
-`/home/lio/.claude/plans/i-need-you-to-iterative-newt.md`; the product spec is `../PLAN.md`.
+(only the CLI can run locally-installed slash-command skills). The product spec is `../PLAN.md`.
 
-> No frontend yet — this is the backend only. See the plan's "Frontend-deferred" section for the
-> UI that consumes these APIs (terminal/JSON monitoring views, tables, graphs, etc.).
+> The web UI that consumes these APIs lives in `../frontend` (see [its README](../frontend/README.md)).
+> For an overview of the whole project, see the [root README](../README.md).
 
 ## Requirements
 
