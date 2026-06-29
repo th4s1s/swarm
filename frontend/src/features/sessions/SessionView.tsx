@@ -80,7 +80,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
   const familyMembers = family.data?.members ?? [];
   // Context window occupancy so far: used tokens (latest live usage, else newest run's stored usage)
   // out of the model's window size (from the latest result event's modelUsage; default 1M).
-  const contextUsed = usageTokens(latestLiveUsage(socket.events) ?? latestRunUsage(runs.data));
+  const contextUsed = occupancyTokens(latestLiveUsage(socket.events) ?? latestRunUsage(runs.data));
   const contextWindow = latestContextWindow(socket.events);
   const contextPct = contextUsed > 0 ? Math.round((contextUsed / contextWindow) * 100) : 0;
 
@@ -116,6 +116,24 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
         }
         actions={<ForkDialog sessionId={s.id} findings={findings} disabled={!s.claude_session_id} />}
       />
+
+      {/* Session metadata, always visible (not hidden behind Settings). */}
+      <div className="border-b border-line px-6 py-2 text-xs">
+        <div className="flex flex-wrap gap-x-6 gap-y-1">
+          <Meta label="Title" value={s.title} />
+          <Meta label="Name" value={s.session_name} mono />
+          <Meta label="Session id" value={s.id} mono />
+          {s.claude_session_id ? <Meta label="Claude session" value={s.claude_session_id} mono /> : null}
+        </div>
+        <div className="mt-1.5">
+          <span className="text-muted">Description: </span>
+          {s.description ? (
+            <span className="whitespace-pre-wrap text-fg/80">{s.description}</span>
+          ) : (
+            <span className="text-muted/60">none</span>
+          )}
+        </div>
+      </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 lg:flex-row">
         {/* Fork family tree (root + all forks, recursively) - left sidebar so it never
@@ -214,6 +232,15 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
   );
 }
 
+function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="text-muted">{label}:</span>
+      <span className={cn('text-fg/80', mono && 'font-mono')}>{value}</span>
+    </span>
+  );
+}
+
 /** Root + all forks (and forks of forks) as an indented tree, built from parent links. */
 function ForkTree({ members, currentId }: { members: FamilyMember[]; currentId: string }) {
   const ids = new Set(members.map((m) => m.id));
@@ -260,16 +287,30 @@ function ForkTree({ members, currentId }: { members: FamilyMember[]; currentId: 
   );
 }
 
-type UsageObj = Record<string, number>;
+interface UsageObj {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  /** Per-turn breakdown on the result event; the last entry is the final turn. */
+  iterations?: UsageObj[];
+  [k: string]: unknown;
+}
 
-/** Context tokens for a turn: prompt (input + both cache buckets) + output. */
-function usageTokens(u: UsageObj | null | undefined): number {
+/**
+ * Context-window occupancy = the size of the FINAL turn's context, not the run's aggregate.
+ * The result event's top-level usage sums every turn (can exceed the window), so when an
+ * `iterations` array is present use its last element; otherwise the object is already a single
+ * turn (an assistant message.usage). Occupancy = prompt (input + both cache buckets) + output.
+ */
+function occupancyTokens(u: UsageObj | null | undefined): number {
   if (!u) return 0;
+  const turn = Array.isArray(u.iterations) && u.iterations.length ? u.iterations[u.iterations.length - 1]! : u;
   return (
-    (u.input_tokens ?? 0) +
-    (u.cache_read_input_tokens ?? 0) +
-    (u.cache_creation_input_tokens ?? 0) +
-    (u.output_tokens ?? 0)
+    (turn.input_tokens ?? 0) +
+    (turn.cache_read_input_tokens ?? 0) +
+    (turn.cache_creation_input_tokens ?? 0) +
+    (turn.output_tokens ?? 0)
   );
 }
 
