@@ -28,6 +28,7 @@ export const qk = {
   usageTimeseries: (days: number) => ['usage', 'timeseries', days] as const,
   usageByProject: (project?: string) => ['usage', 'byProject', project ?? '*'] as const,
   mcp: (scope: string, project?: string) => ['mcp', scope, project ?? '*'] as const,
+  mcpStatus: (scope: string, project?: string) => ['mcpStatus', scope, project ?? '*'] as const,
   mcpConfig: (scope: string, name: string, project?: string) =>
     ['mcpConfig', scope, name, project ?? '*'] as const,
   images: (search: string, filter: string) => ['images', search, filter] as const,

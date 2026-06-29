@@ -78,8 +78,11 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
   const liveInterval = running ? 4000 : false;
   const findings = s.audit.findings;
   const familyMembers = family.data?.members ?? [];
-  // Current context occupancy: prefer the latest live usage, else the most recent run's stored usage.
+  // Context window occupancy so far: used tokens (latest live usage, else newest run's stored usage)
+  // out of the model's window size (from the latest result event's modelUsage; default 1M).
   const contextUsed = usageTokens(latestLiveUsage(socket.events) ?? latestRunUsage(runs.data));
+  const contextWindow = latestContextWindow(socket.events);
+  const contextPct = contextUsed > 0 ? Math.round((contextUsed / contextWindow) * 100) : 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -99,8 +102,11 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
             {s.claude_session_id ? <span className="text-muted/60">· {s.claude_session_id.slice(0, 8)}</span> : null}
             <StatusPill status={running ? 'running' : s.status} />
             {contextUsed > 0 ? (
-              <span className="text-[11px] text-muted" title="Approximate context tokens used (latest turn)">
-                ctx {fmtTokens(contextUsed)}
+              <span
+                className={cn('text-[11px]', contextPct >= 85 ? 'text-danger' : 'text-muted')}
+                title="Context window used so far"
+              >
+                ctx {fmtTokens(contextUsed)} / {fmtTokens(contextWindow)} ({contextPct}%)
               </span>
             ) : null}
             <span className={cn('flex items-center gap-1 text-[11px]', socket.connected ? 'text-primary' : 'text-muted')}>
@@ -114,7 +120,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
       <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 lg:flex-row">
         {/* Fork family tree (root + all forks, recursively) - left sidebar so it never
             steals the monitor's height; scrolls within its own column. */}
-        {familyMembers.length > 1 ? (
+        {familyMembers.length > 0 ? (
           <aside className="w-full shrink-0 overflow-y-auto lg:w-56">
             <ForkTree members={familyMembers} currentId={s.id} />
           </aside>
@@ -169,7 +175,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
                 <TabsTrigger value="queue">Queue</TabsTrigger>
                 <TabsTrigger value="notes">Resume Note</TabsTrigger>
                 <TabsTrigger value="live">Live Note</TabsTrigger>
-                <TabsTrigger value="config">Config</TabsTrigger>
+                <TabsTrigger value="config">Settings</TabsTrigger>
               </TabsList>
               <Card className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden">
                 <TabsContent value="findings" className="min-h-0 flex-1 overflow-y-auto p-3">
@@ -197,7 +203,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
                   <LiveNoteEditor projectId={s.project.id} />
                 </TabsContent>
                 <TabsContent value="config" className="min-h-0 flex-1 overflow-y-auto p-3">
-                  <SessionConfigCard sessionId={id} config={s.config} disabled={running} />
+                  <SessionConfigCard sessionId={id} title={s.title} description={s.description} config={s.config} />
                 </TabsContent>
               </Card>
             </Tabs>
@@ -265,6 +271,20 @@ function usageTokens(u: UsageObj | null | undefined): number {
     (u.cache_creation_input_tokens ?? 0) +
     (u.output_tokens ?? 0)
   );
+}
+
+/** Window size from the most recent result event's modelUsage; default 1M when unknown. */
+function latestContextWindow(events: { event: StreamEvent }[]): number {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const mu = events[i]!.event.modelUsage as Record<string, { contextWindow?: number }> | undefined;
+    if (mu && typeof mu === 'object') {
+      const windows = Object.values(mu)
+        .map((m) => m?.contextWindow ?? 0)
+        .filter((n) => n > 0);
+      if (windows.length) return Math.max(...windows);
+    }
+  }
+  return 1_000_000;
 }
 
 /** The usage object from the most recent live event that carries one. */

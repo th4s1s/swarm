@@ -8,6 +8,7 @@ import {
   getServerConfig,
   getServerDetail,
   listProjectServers,
+  listServerStatuses,
   listUserServers,
   removeServer,
 } from '../lib/mcp.js';
@@ -60,6 +61,14 @@ export async function registerMcp(app: FastifyInstance): Promise<void> {
         return { scope: 'project', project: q.project, servers: listProjectServers(q.project) };
       }
       return { scope: 'user', servers: listUserServers() };
+    });
+
+    // Per-server connection status (runs `claude mcp list`, slow; fetched separately from the list).
+    r.get('/api/mcp/status', async (req) => {
+      const q = req.query as { scope?: string; project?: string };
+      const sc = q.scope === 'project' ? 'project' : 'user';
+      requireProject(sc, q.project);
+      return { statuses: await listServerStatuses(sc, q.project) };
     });
 
     r.get('/api/mcp/:name', async (req) => {

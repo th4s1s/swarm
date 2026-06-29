@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTrigger } from '@/components/ui/dialog';
 import { EmptyState, Loading } from '@/components/ui/misc';
+import { StatusPill } from '@/components/StatusPill';
 import { useProjects } from '@/features/projects/api';
-import { fetchMcpConfig, useAddMcp, useDeleteMcp, useMcp } from '@/features/ops/api';
+import { fetchMcpConfig, useAddMcp, useDeleteMcp, useMcp, useMcpStatus } from '@/features/ops/api';
 
 type Transport = 'stdio' | 'http' | 'sse';
 
@@ -35,6 +36,7 @@ export function McpPage() {
   const [project, setProject] = useState('');
   const projects = useProjects();
   const q = useMcp(scope, scope === 'project' ? project : undefined);
+  const status = useMcpStatus(scope, scope === 'project' ? project : undefined);
   const del = useDeleteMcp();
   const proj = scope === 'project' ? project : undefined;
 
@@ -73,15 +75,17 @@ export function McpPage() {
           <Card>
             <Table>
               <THead>
-                <TR><TH>Name</TH><TH>Transport</TH><TH>Command / URL</TH><TH>Extras</TH><TH></TH></TR>
+                <TR><TH>Name</TH><TH>Transport</TH><TH>Status</TH><TH>Command / URL</TH><TH>Extras</TH><TH></TH></TR>
               </THead>
               <TBody>
                 {q.data.servers.map((s) => {
                   const deleting = del.isPending && del.variables?.name === s.name;
+                  const st = status.data?.statuses?.[s.name] ?? (status.isLoading ? 'checking' : 'unknown');
                   return (
                     <TR key={s.name}>
                       <TD className="font-medium text-fg">{s.name}</TD>
                       <TD><Badge tone="primary">{s.transport}</Badge></TD>
+                      <TD><StatusPill status={st} /></TD>
                       <TD className="max-w-[24rem] truncate font-mono text-xs text-muted">
                         {s.url ?? [s.command, ...(s.args ?? [])].join(' ')}
                       </TD>

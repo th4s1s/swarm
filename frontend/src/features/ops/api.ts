@@ -70,6 +70,18 @@ export function useMcp(scope: 'user' | 'project', project?: string) {
     enabled: scope === 'user' || Boolean(project),
   });
 }
+/** Per-server connection status (runs `claude mcp list` server-side; slower than the list). */
+export function useMcpStatus(scope: 'user' | 'project', project?: string) {
+  return useQuery({
+    queryKey: qk.mcpStatus(scope, project),
+    queryFn: () =>
+      api.get<{ statuses: Record<string, string> }>(
+        `/api/mcp/status?scope=${scope}${project ? `&project=${encodeURIComponent(project)}` : ''}`,
+      ),
+    enabled: scope === 'user' || Boolean(project),
+    staleTime: 30_000,
+  });
+}
 export function useAddMcp() {
   const qc = useQueryClient();
   return useMutation({

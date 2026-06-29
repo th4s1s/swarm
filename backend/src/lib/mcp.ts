@@ -165,3 +165,34 @@ export async function getServerDetail(name: string, projectName?: string): Promi
   }));
   return res.stdout || res.stderr;
 }
+
+/**
+ * Per-server connection status via `claude mcp list` (which runs live health checks, so it can be
+ * slow). Returns name -> 'connected' | 'failed' | 'needs-auth'. Lines look like:
+ *   `<name>: <command-or-url> - ✔ Connected | ✘ Failed to connect | ! Needs authentication`
+ */
+export async function listServerStatuses(
+  scope: 'user' | 'project',
+  projectName?: string,
+): Promise<Record<string, string>> {
+  const cwd = cwdForScope(scope, projectName);
+  const res = await run(config.claudeBin, ['mcp', 'list'], { cwd, timeoutMs: 60_000 }).catch((e) => ({
+    stdout: '',
+    stderr: (e as Error).message,
+    code: 1,
+  }));
+  const out: Record<string, string> = {};
+  for (const line of (res.stdout || '').split('\n')) {
+    const idx = line.indexOf(': ');
+    if (idx <= 0) continue;
+    const name = line.slice(0, idx).trim();
+    if (!name) continue;
+    let status: string;
+    if (line.includes('✘') || /failed to connect/i.test(line)) status = 'failed';
+    else if (line.includes('✔') || /\bconnected\b/i.test(line)) status = 'connected';
+    else if (line.includes('!') || /needs auth/i.test(line)) status = 'needs-auth';
+    else continue;
+    out[name] = status;
+  }
+  return out;
+}
