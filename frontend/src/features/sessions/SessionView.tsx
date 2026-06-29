@@ -128,7 +128,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
         <div className="mt-1.5">
           <span className="text-muted">Description: </span>
           {s.description ? (
-            <span className="whitespace-pre-wrap text-fg/80">{s.description}</span>
+            <div className="mt-0.5 max-h-16 overflow-y-auto whitespace-pre-wrap text-fg/80">{s.description}</div>
           ) : (
             <span className="text-muted/60">none</span>
           )}
