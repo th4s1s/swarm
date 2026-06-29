@@ -3,6 +3,7 @@ import { Loader2, Play, Send, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea, Input, Select } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { composePreview } from '@/lib/runPrompt';
 import type { AuditFinding } from '@/lib/types';
 import { useEnqueueRun, useSteer, useStopSession } from '@/features/sessions/api';
 
@@ -21,12 +22,14 @@ export function RunControls({
   modes,
   findings,
   running,
+  canCompact = false,
 }: {
   sessionId: string;
   phases: string[];
   modes: string[];
   findings: AuditFinding[];
   running: boolean;
+  canCompact?: boolean;
 }) {
   const enqueue = useEnqueueRun(sessionId);
   const steer = useSteer(sessionId);
@@ -34,12 +37,15 @@ export function RunControls({
 
   const [phase, setPhase] = useState<string | null>(null);
   const [mode, setMode] = useState<string | null>(null);
+  const [compact, setCompact] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [findingId, setFindingId] = useState('');
   const [steerText, setSteerText] = useState('');
 
   const tps = findings.filter((f) => f.verdict === 'TRUE_POSITIVE');
-  const canRun = Boolean(phase || mode || prompt.trim()) && !(phase === 'verify' && !findingId);
+  const canRun =
+    Boolean(phase || mode || compact || prompt.trim()) && !(phase === 'verify' && !findingId);
+  const preview = composePreview({ phase, mode, findingId, customPrompt: prompt, compact });
 
   const run = () => {
     enqueue.mutate(
@@ -48,6 +54,7 @@ export function RunControls({
         mode: mode ?? undefined,
         customPrompt: prompt.trim() || undefined,
         findingId: phase === 'verify' ? findingId : undefined,
+        compact: compact || undefined,
       },
       { onSuccess: () => setPrompt('') },
     );
@@ -72,6 +79,7 @@ export function RunControls({
             onClick={() => {
               setPhase(phase === p ? null : p);
               setMode(null);
+              setCompact(false);
             }}
           >
             {PHASE_LABEL[p] ?? p}
@@ -86,11 +94,29 @@ export function RunControls({
             onClick={() => {
               setMode(mode === m ? null : m);
               setPhase(null);
+              setCompact(false);
             }}
           >
             {m}
           </button>
         ))}
+        <span className="mx-1 text-line">|</span>
+        <span className="mr-1 text-[11px] uppercase tracking-wider text-muted">context</span>
+        <button
+          className={cn(chip(compact), 'disabled:cursor-not-allowed disabled:opacity-40')}
+          disabled={!canCompact}
+          title={canCompact ? 'Compact the conversation context' : 'Run a phase first (no session yet)'}
+          onClick={() => {
+            const next = !compact;
+            setCompact(next);
+            if (next) {
+              setPhase(null);
+              setMode(null);
+            }
+          }}
+        >
+          compact
+        </button>
       </div>
 
       {phase === 'verify' ? (
@@ -108,9 +134,20 @@ export function RunControls({
       <Textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Custom prompt - appended to the selected phase/mode, or sent on its own."
+        placeholder={
+          compact
+            ? 'Optional compact instructions (what to keep / focus the summary on).'
+            : 'Custom prompt - appended to the selected phase/mode, or sent on its own.'
+        }
         className="min-h-[64px]"
       />
+
+      {canRun ? (
+        <div className="rounded-md border border-line bg-surface-2/40 px-3 py-2">
+          <div className="mb-1 text-[11px] uppercase tracking-wider text-muted">prompt sent to agent</div>
+          <pre className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs text-fg/80">{preview}</pre>
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">

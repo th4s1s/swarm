@@ -102,7 +102,7 @@ export function useRunEvents(runId: string | undefined) {
 export function useEnqueueRun(sessionId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (b: { phase?: string; mode?: string; customPrompt?: string; findingId?: string }) =>
+    mutationFn: (b: { phase?: string; mode?: string; customPrompt?: string; findingId?: string; compact?: boolean }) =>
       api.post<RunRow>(`/api/sessions/${sessionId}/runs`, b),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.runs(sessionId) }),
   });

@@ -14,6 +14,7 @@ const runSchema = z.object({
   mode: z.enum(MODES).optional(),
   customPrompt: z.string().max(20000).optional(),
   findingId: z.string().max(100).optional(),
+  compact: z.boolean().optional(),
 });
 const steerSchema = z.object({ text: z.string().min(1).max(20000) });
 

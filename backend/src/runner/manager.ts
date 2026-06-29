@@ -39,6 +39,7 @@ export interface EnqueueInput {
   mode?: string | null;
   customPrompt?: string | null;
   findingId?: string | null;
+  compact?: boolean | null;
 }
 
 class RunnerManager {
@@ -65,6 +66,7 @@ class RunnerManager {
       mode: input.mode,
       customPrompt: input.customPrompt,
       findingId,
+      compact: input.compact,
     });
 
     const id = newId();

@@ -12,9 +12,10 @@ import { StatusPill } from '@/components/StatusPill';
 import { Badge } from '@/components/ui/badge';
 import { ErrorNote, Loading } from '@/components/ui/misc';
 import { cn } from '@/lib/utils';
+import { tokens as fmtTokens } from '@/lib/format';
 import { qk } from '@/lib/query';
 import { useSessionSocket } from '@/lib/ws';
-import type { FamilyMember, StreamEvent, WsMessage } from '@/lib/types';
+import type { FamilyMember, RunRow, StreamEvent, WsMessage } from '@/lib/types';
 import { TerminalView } from '@/features/monitor/TerminalView';
 import { JsonView } from '@/features/monitor/JsonView';
 import { RunControls } from '@/features/monitor/RunControls';
@@ -77,6 +78,8 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
   const liveInterval = running ? 4000 : false;
   const findings = s.audit.findings;
   const familyMembers = family.data?.members ?? [];
+  // Current context occupancy: prefer the latest live usage, else the most recent run's stored usage.
+  const contextUsed = usageTokens(latestLiveUsage(socket.events) ?? latestRunUsage(runs.data));
 
   return (
     <div className="flex h-full flex-col">
@@ -95,6 +98,11 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
             {s.project.name} / {s.session_name}
             {s.claude_session_id ? <span className="text-muted/60">· {s.claude_session_id.slice(0, 8)}</span> : null}
             <StatusPill status={running ? 'running' : s.status} />
+            {contextUsed > 0 ? (
+              <span className="text-[11px] text-muted" title="Approximate context tokens used (latest turn)">
+                ctx {fmtTokens(contextUsed)}
+              </span>
+            ) : null}
             <span className={cn('flex items-center gap-1 text-[11px]', socket.connected ? 'text-primary' : 'text-muted')}>
               <Radio className="size-3" /> {socket.connected ? 'live' : 'offline'}
             </span>
@@ -147,6 +155,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
               modes={options.data.modes}
               findings={findings}
               running={running}
+              canCompact={Boolean(s.claude_session_id)}
             />
           ) : null}
         </div>
@@ -243,4 +252,42 @@ function ForkTree({ members, currentId }: { members: FamilyMember[]; currentId: 
       </div>
     </div>
   );
+}
+
+type UsageObj = Record<string, number>;
+
+/** Context tokens for a turn: prompt (input + both cache buckets) + output. */
+function usageTokens(u: UsageObj | null | undefined): number {
+  if (!u) return 0;
+  return (
+    (u.input_tokens ?? 0) +
+    (u.cache_read_input_tokens ?? 0) +
+    (u.cache_creation_input_tokens ?? 0) +
+    (u.output_tokens ?? 0)
+  );
+}
+
+/** The usage object from the most recent live event that carries one. */
+function latestLiveUsage(events: { event: StreamEvent }[]): UsageObj | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i]!.event;
+    const u = (ev.message?.usage ?? ev.usage) as UsageObj | undefined;
+    if (u && Object.keys(u).length) return u;
+  }
+  return null;
+}
+
+/** Fallback for an idle session: the newest run's stored usage. */
+function latestRunUsage(runs: RunRow[] | undefined): UsageObj | null {
+  let best: RunRow | null = null;
+  for (const r of runs ?? []) {
+    if (!r.usage_json) continue;
+    if (!best || r.created_at > best.created_at) best = r;
+  }
+  if (!best?.usage_json) return null;
+  try {
+    return JSON.parse(best.usage_json) as UsageObj;
+  } catch {
+    return null;
+  }
 }

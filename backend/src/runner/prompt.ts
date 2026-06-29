@@ -11,6 +11,8 @@ export interface ComposeInput {
   customPrompt?: string | null;
   /** Required when phase === 'verify' (the finding to verify in this fork). */
   findingId?: string | null;
+  /** Compact the resumed session's context (sends `/compact [instructions]`). */
+  compact?: boolean | null;
 }
 
 const SLASH: Record<Phase, string> = {
@@ -33,6 +35,13 @@ export function composePrompt(input: ComposeInput): {
   mode: Mode | null;
 } {
   const custom = (input.customPrompt ?? '').trim();
+
+  // Compact is its own kind of run: send `/compact` (with optional inline instructions)
+  // to the resumed session. It is not combined with a phase/mode.
+  if (input.compact) {
+    return { prompt: custom ? `/compact ${custom}` : '/compact', phase: null, mode: null };
+  }
+
   let head = '';
   let phase: Phase | null = null;
   let mode: Mode | null = null;
