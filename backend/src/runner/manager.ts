@@ -32,7 +32,16 @@ interface ActiveRun {
   log: WriteStream;
   canceled: boolean;
   capturedSid: boolean;
+  /** Streaming-input lifecycle: messages sent to the process, and `result`s seen back. */
+  sent: number;
+  done: number;
+  /** Timer that closes stdin once the agent is idle (all sent messages answered). */
+  idleTimer: ReturnType<typeof setTimeout> | null;
 }
+
+/** After the agent answers everything it was sent, wait this long for a late steer before
+ * closing stdin (which ends the run). Keeps a small window for live follow-ups. */
+const IDLE_CLOSE_MS = 1200;
 
 export interface EnqueueInput {
   phase?: string | null;
@@ -59,6 +68,17 @@ class RunnerManager {
     if (!session) throw notFound('session not found');
     const project = getProjectById(session.project_id);
     if (!project) throw notFound('project not found');
+
+    // Live injection: if a run is already streaming for this session and this is a free-text
+    // message (no phase/mode/compact), feed it into the running process instead of queuing a run.
+    const customText = (input.customPrompt ?? '').trim();
+    if (customText && !input.phase && !input.mode && !input.compact) {
+      const ctx = this.activeForSession(sessionId);
+      if (ctx) {
+        this.inject(ctx, customText);
+        return getRunById(ctx.runId)!;
+      }
+    }
 
     const findingId = input.findingId ?? session.fork_finding_id ?? null;
     const { prompt, phase, mode } = composePrompt({
@@ -143,6 +163,9 @@ class RunnerManager {
       VIBEHACK_APP: '1',
       VIBEHACK_AUDIT_DIR: auditDir(project.name, session.session_name),
       VIBEHACK_PROJECT: project.name,
+      // Wait indefinitely for the orchestrator's background subagents/workflows instead of
+      // killing them (and the run) after the default 600s ceiling.
+      CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '0',
     };
     if (cfg.thinking === true) env.MAX_THINKING_TOKENS = String(cfg.thinkingTokens ?? 10_000);
     else if (cfg.thinking === false) env.MAX_THINKING_TOKENS = '0';
@@ -152,6 +175,9 @@ class RunnerManager {
         prompt: run.composed_prompt ?? '',
         cwd: projectDir(project.name),
         env,
+        // Stream the prompt on stdin and keep it open so steer / free-text can be injected
+        // into the live run (instead of queuing a separate run).
+        streamingInput: true,
         sessionId: sessionIdFlag,
         resume,
         fork,
@@ -194,6 +220,9 @@ class RunnerManager {
       log,
       canceled: false,
       capturedSid: Boolean(session.claude_session_id || sessionIdFlag),
+      sent: 1, // the initial prompt was sent on stdin
+      done: 0,
+      idleTimer: null,
     });
   }
 
@@ -218,7 +247,40 @@ class RunnerManager {
         usage_json: usage ? JSON.stringify(usage) : null,
         is_error: isErr,
       });
+      // The agent finished a turn. Once every message we sent has been answered, close stdin
+      // (after a short grace) so the run ends; a steer before then keeps it open.
+      if (ctx) {
+        ctx.done += 1;
+        this.maybeArmIdleClose(ctx);
+      }
     }
+  }
+
+  /** Find the active (non-canceled) run for a session, if any. */
+  private activeForSession(sessionId: string): ActiveRun | undefined {
+    for (const ctx of this.active.values()) if (ctx.sessionId === sessionId && !ctx.canceled) return ctx;
+    return undefined;
+  }
+
+  /** Feed a free-text message into the running process and surface it in the transcript. */
+  private inject(ctx: ActiveRun, text: string): void {
+    if (ctx.idleTimer) {
+      clearTimeout(ctx.idleTimer);
+      ctx.idleTimer = null;
+    }
+    ctx.sent += 1;
+    ctx.handle.send(text);
+    const ev = { type: 'user', message: { role: 'user', content: [{ type: 'text', text }] } };
+    ctx.log.write(JSON.stringify(ev) + '\n');
+    hub.broadcast(ctx.sessionId, { kind: 'event', runId: ctx.runId, event: ev });
+  }
+
+  /** Close stdin (ending the run) once all sent messages are answered, after a short grace. */
+  private maybeArmIdleClose(ctx: ActiveRun): void {
+    if (ctx.canceled || ctx.done < ctx.sent) return;
+    if (ctx.idleTimer) clearTimeout(ctx.idleTimer);
+    ctx.idleTimer = setTimeout(() => ctx.handle.endInput(), IDLE_CLOSE_MS);
+    ctx.idleTimer.unref?.();
   }
 
   private finalize(runId: string, code: number | null): void {
@@ -241,6 +303,7 @@ class RunnerManager {
       hub.broadcast(run.session_id, { kind: 'session', status: 'idle' });
     }
     if (ctx) {
+      if (ctx.idleTimer) clearTimeout(ctx.idleTimer);
       ctx.log.end();
       this.active.delete(runId);
     }
@@ -288,7 +351,10 @@ class RunnerManager {
     updateSession(sessionId, { status: 'idle' });
   }
 
-  /** Inject a steer message: priority-enqueue a custom-prompt run ahead of the queue. */
+  /**
+   * Steer: if a run is live, inject the text into it (handled inside enqueue); otherwise
+   * priority-enqueue a custom-prompt run ahead of the queue.
+   */
   steer(sessionId: string, text: string): RunRow {
     return this.enqueue(sessionId, { customPrompt: text }, { jump: true });
   }
