@@ -75,10 +75,15 @@ export function useReport(id: string, refetchInterval: number | false = false) {
 }
 
 // --- runner ---
+export interface ModelOption {
+  id: string;
+  label: string;
+}
 export function useRunnerOptions() {
   return useQuery({
     queryKey: qk.runnerOptions,
-    queryFn: () => api.get<{ phases: string[]; modes: string[] }>('/api/runner/options'),
+    queryFn: () =>
+      api.get<{ phases: string[]; modes: string[]; models: ModelOption[] }>('/api/runner/options'),
     staleTime: Infinity,
   });
 }

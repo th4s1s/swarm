@@ -37,6 +37,9 @@ interface ActiveRun {
   done: number;
   /** Timer that closes stdin once the agent is idle (all sent messages answered). */
   idleTimer: ReturnType<typeof setTimeout> | null;
+  /** Background task ids the agent is still waiting on (build/subagent/workflow). While any
+   * are outstanding the agent intends to resume, so we must NOT close stdin. */
+  bgTasks: Set<string>;
 }
 
 /** After the agent answers everything it was sent, wait this long for a late steer before
@@ -223,6 +226,7 @@ class RunnerManager {
       sent: 1, // the initial prompt was sent on stdin
       done: 0,
       idleTimer: null,
+      bgTasks: new Set(),
     });
   }
 
@@ -236,6 +240,24 @@ class RunnerManager {
         updateSession(run.session_id, { claude_session_id: sid });
         updateRun(run.id, { claude_session_id: sid });
         hub.broadcast(run.session_id, { kind: 'session', claude_session_id: sid });
+      }
+    }
+    // Background-task lifecycle: the agent can launch a bash build / subagent / workflow,
+    // background it, and end its turn expecting to be re-notified on completion. Track those
+    // so the idle-close below never ends a run that is legitimately parked on one.
+    if (ctx && obj['type'] === 'system') {
+      const sub = obj['subtype'];
+      const taskId = typeof obj['task_id'] === 'string' ? (obj['task_id'] as string) : null;
+      if (taskId && sub === 'task_started') {
+        ctx.bgTasks.add(taskId);
+        if (ctx.idleTimer) {
+          clearTimeout(ctx.idleTimer);
+          ctx.idleTimer = null;
+        }
+      } else if (taskId && sub === 'task_notification') {
+        // Terminal notification: the agent has been told the task finished and will resume,
+        // so stop tracking it. The ensuing turn's `result` re-arms the idle-close.
+        ctx.bgTasks.delete(taskId);
       }
     }
     if (obj['type'] === 'result') {
@@ -275,9 +297,12 @@ class RunnerManager {
     hub.broadcast(ctx.sessionId, { kind: 'event', runId: ctx.runId, event: ev });
   }
 
-  /** Close stdin (ending the run) once all sent messages are answered, after a short grace. */
+  /** Close stdin (ending the run) once all sent messages are answered, after a short grace.
+   * Never closes while a background task is outstanding: the agent parked on it (a build,
+   * subagent, or workflow) intends to resume once it completes. */
   private maybeArmIdleClose(ctx: ActiveRun): void {
     if (ctx.canceled || ctx.done < ctx.sent) return;
+    if (ctx.bgTasks.size > 0) return;
     if (ctx.idleTimer) clearTimeout(ctx.idleTimer);
     ctx.idleTimer = setTimeout(() => ctx.handle.endInput(), IDLE_CLOSE_MS);
     ctx.idleTimer.unref?.();

@@ -2,6 +2,7 @@ import { Sparkles } from 'lucide-react';
 import { Input, Label, Select } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { ModelSelect } from './ModelSelect';
 import type { Effort, SessionConfig } from '@/lib/types';
 
 export type DraftConfig = Partial<SessionConfig>;
@@ -30,12 +31,8 @@ export function ConfigForm({ value, onChange }: { value: DraftConfig; onChange: 
           </Select>
         </div>
         <div className="flex flex-col gap-1">
-          <Label>Model (blank = default)</Label>
-          <Input
-            value={value.model ?? ''}
-            onChange={(e) => set({ model: e.target.value || null })}
-            placeholder="claude-opus-4-8"
-          />
+          <Label>Model</Label>
+          <ModelSelect value={value.model ?? ''} onChange={(v) => set({ model: v || null })} />
         </div>
         <div className="flex flex-col gap-1">
           <Label>Effort</Label>

@@ -4,6 +4,7 @@ import type { WebSocket } from '@fastify/websocket';
 import { z } from 'zod';
 import { badRequest, notFound } from '../lib/errors.js';
 import { PHASES, MODES } from './prompt.js';
+import { MODELS } from './models.js';
 import { runner } from './manager.js';
 import { hub } from './hub.js';
 import { getRunById, listBySession, deleteQueuedRun } from './repo.js';
@@ -38,7 +39,7 @@ export async function registerRunner(app: FastifyInstance): Promise<void> {
   await app.register(async (r) => {
     r.addHook('preHandler', app.authGuard);
 
-    r.get('/api/runner/options', async () => ({ phases: PHASES, modes: MODES }));
+    r.get('/api/runner/options', async () => ({ phases: PHASES, modes: MODES, models: MODELS }));
 
     r.post('/api/sessions/:id/runs', async (req, reply) => {
       const body = runSchema.parse(req.body);

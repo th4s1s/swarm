@@ -6,6 +6,7 @@ import { Input, Label, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ErrorNote, Loading } from '@/components/ui/misc';
 import { useConfig, usePatchConfig } from '@/features/ops/api';
+import { ModelSelect } from '@/features/sessions/ModelSelect';
 
 export function ConfigPage() {
   const q = useConfig();
@@ -67,8 +68,8 @@ export function ConfigPage() {
               </Select>
             </Field>
 
-            <Field label="Default model (blank = default)">
-              <Input value={form.default_model ?? ''} onChange={(e) => set('default_model', e.target.value)} />
+            <Field label="Default model">
+              <ModelSelect value={form.default_model ?? ''} onChange={(v) => set('default_model', v)} />
             </Field>
             <Field label="Default effort">
               <Select value={form.default_effort ?? ''} onChange={(e) => set('default_effort', e.target.value)}>
