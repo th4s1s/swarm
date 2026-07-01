@@ -49,13 +49,50 @@ export interface QuotaWindow {
   used: number; // percent used (utilization)
   remaining: number; // percent remaining
   resetsAt: string | null;
+  // Populated only for pay-as-you-go windows (null for subscription windows).
+  limitDollars?: number | null;
+  usedDollars?: number | null;
+  remainingDollars?: number | null;
+}
+
+/** A money amount in minor units (dollars = amountMinor / 10**exponent). */
+export interface Money {
+  amountMinor: number;
+  currency: string;
+  exponent: number;
+}
+
+/** The `spend` block from the usage endpoint: monthly dollar spend / credit balance. */
+export interface SpendInfo {
+  enabled: boolean;
+  used: Money | null;
+  limit: Money | null;
+  balance: Money | null;
+  cap: Money | null;
+  percent: number | null;
+  severity: string | null; // normal | warning | critical
+  disabledReason: string | null;
+  canPurchaseCredits: boolean;
+  disclaimer: string | null;
+}
+
+/** The `extra_usage` block: the usage-credits / monthly view. */
+export interface ExtraUsageInfo {
+  isEnabled: boolean;
+  monthlyLimit: number | null;
+  usedCredits: number | null;
+  utilization: number | null; // percent
+  currency: string | null;
+  decimalPlaces: number | null;
+  disabledReason: string | null;
 }
 
 export interface QuotaResult {
   account: AccountInfo;
   plan: string;
   quotas: Record<string, QuotaWindow>;
-  extraUsage: unknown;
+  spend: SpendInfo | null;
+  extraUsage: ExtraUsageInfo | null;
   error?: string;
 }
 
@@ -72,24 +109,85 @@ function parseReset(v: unknown): string | null {
   return null;
 }
 
+function num(o: Record<string, unknown>, k: string): number | null {
+  return typeof o[k] === 'number' ? (o[k] as number) : null;
+}
+
 function toWindow(w: Record<string, unknown>): QuotaWindow {
   const used = typeof w['utilization'] === 'number' ? (w['utilization'] as number) : 0;
-  return { used, remaining: Math.max(0, 100 - used), resetsAt: parseReset(w['resets_at']) };
+  return {
+    used,
+    remaining: Math.max(0, 100 - used),
+    resetsAt: parseReset(w['resets_at']),
+    limitDollars: num(w, 'limit_dollars'),
+    usedDollars: num(w, 'used_dollars'),
+    remainingDollars: num(w, 'remaining_dollars'),
+  };
+}
+
+function toMoney(x: unknown): Money | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  if (typeof o['amount_minor'] !== 'number') return null;
+  return {
+    amountMinor: o['amount_minor'] as number,
+    currency: typeof o['currency'] === 'string' ? (o['currency'] as string) : 'USD',
+    exponent: typeof o['exponent'] === 'number' ? (o['exponent'] as number) : 2,
+  };
+}
+
+function toSpend(x: unknown): SpendInfo | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  return {
+    enabled: o['enabled'] === true,
+    used: toMoney(o['used']),
+    limit: toMoney(o['limit']),
+    balance: toMoney(o['balance']),
+    cap: toMoney(o['cap']),
+    percent: num(o, 'percent'),
+    severity: typeof o['severity'] === 'string' ? (o['severity'] as string) : null,
+    disabledReason: typeof o['disabled_reason'] === 'string' ? (o['disabled_reason'] as string) : null,
+    canPurchaseCredits: o['can_purchase_credits'] === true,
+    disclaimer: typeof o['disclaimer'] === 'string' ? (o['disclaimer'] as string) : null,
+  };
+}
+
+function toExtraUsage(x: unknown): ExtraUsageInfo | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  return {
+    isEnabled: o['is_enabled'] === true,
+    monthlyLimit: num(o, 'monthly_limit'),
+    usedCredits: num(o, 'used_credits'),
+    utilization: num(o, 'utilization'),
+    currency: typeof o['currency'] === 'string' ? (o['currency'] as string) : null,
+    decimalPlaces: num(o, 'decimal_places'),
+    disabledReason: typeof o['disabled_reason'] === 'string' ? (o['disabled_reason'] as string) : null,
+  };
 }
 
 function hasUtil(w: unknown): w is Record<string, unknown> {
   return !!w && typeof w === 'object' && typeof (w as Record<string, unknown>)['utilization'] === 'number';
 }
 
-/** Fetch the OAuth usage windows (5h session / 7d weekly / per-model). */
+/** Fetch the OAuth usage windows (5h session / 7d weekly / per-model) plus the monthly spend /
+ * usage-credit block. Both the windows and the spend block come from the same endpoint. */
 export async function getQuota(): Promise<QuotaResult> {
   const account = readAccount();
+  const empty = (plan: string, error?: string): QuotaResult => ({
+    account,
+    plan,
+    quotas: {},
+    spend: null,
+    extraUsage: null,
+    ...(error ? { error } : {}),
+  });
+
   const token = readAccessToken();
-  if (!token) {
-    return { account, plan: 'unknown', quotas: {}, extraUsage: null, error: 'no Claude OAuth token found (~/.claude/.credentials.json)' };
-  }
+  if (!token) return empty('unknown', 'no Claude OAuth token found (~/.claude/.credentials.json)');
   if (Date.now() < cooldownUntil) {
-    return { account, plan: 'Claude Code', quotas: {}, extraUsage: null, error: 'usage endpoint cooling down after rate limit; try again shortly' };
+    return empty('Claude Code', 'usage endpoint cooling down after rate limit; try again shortly');
   }
   try {
     const res = await fetch(OAUTH_USAGE_URL, {
@@ -102,11 +200,10 @@ export async function getQuota(): Promise<QuotaResult> {
     });
     if (res.status === 429) {
       cooldownUntil = Date.now() + OAUTH_429_COOLDOWN_MS;
-      return { account, plan: 'Claude Code', quotas: {}, extraUsage: null, error: 'rate limited (429) by the usage endpoint' };
+      return empty('Claude Code', 'rate limited (429) by the usage endpoint');
     }
-    if (!res.ok) {
-      return { account, plan: 'Claude Code', quotas: {}, extraUsage: null, error: `usage endpoint returned ${res.status}` };
-    }
+    if (!res.ok) return empty('Claude Code', `usage endpoint returned ${res.status}`);
+
     const data = (await res.json()) as Record<string, unknown>;
     const quotas: Record<string, QuotaWindow> = {};
     if (hasUtil(data['five_hour'])) quotas['session_5h'] = toWindow(data['five_hour'] as Record<string, unknown>);
@@ -116,8 +213,14 @@ export async function getQuota(): Promise<QuotaResult> {
         quotas[`weekly_${k.replace('seven_day_', '')}`] = toWindow(v as Record<string, unknown>);
       }
     }
-    return { account, plan: 'Claude Code', quotas, extraUsage: data['extra_usage'] ?? null };
+    return {
+      account,
+      plan: 'Claude Code',
+      quotas,
+      spend: toSpend(data['spend']),
+      extraUsage: toExtraUsage(data['extra_usage']),
+    };
   } catch (e) {
-    return { account, plan: 'Claude Code', quotas: {}, extraUsage: null, error: (e as Error).message };
+    return empty('Claude Code', (e as Error).message);
   }
 }

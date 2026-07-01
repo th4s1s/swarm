@@ -233,6 +233,36 @@ export interface QuotaWindow {
   used: number;
   remaining: number;
   resetsAt: string | null;
+  limitDollars?: number | null;
+  usedDollars?: number | null;
+  remainingDollars?: number | null;
+}
+/** Money in minor units: dollars = amountMinor / 10**exponent. */
+export interface Money {
+  amountMinor: number;
+  currency: string;
+  exponent: number;
+}
+export interface SpendInfo {
+  enabled: boolean;
+  used: Money | null;
+  limit: Money | null;
+  balance: Money | null;
+  cap: Money | null;
+  percent: number | null;
+  severity: string | null; // normal | warning | critical
+  disabledReason: string | null;
+  canPurchaseCredits: boolean;
+  disclaimer: string | null;
+}
+export interface ExtraUsageInfo {
+  isEnabled: boolean;
+  monthlyLimit: number | null;
+  usedCredits: number | null;
+  utilization: number | null;
+  currency: string | null;
+  decimalPlaces: number | null;
+  disabledReason: string | null;
 }
 export interface QuotaResult {
   account: {
@@ -243,7 +273,8 @@ export interface QuotaResult {
   };
   plan: string;
   quotas: Record<string, QuotaWindow>;
-  extraUsage: unknown;
+  spend: SpendInfo | null;
+  extraUsage: ExtraUsageInfo | null;
   error?: string;
 }
 
