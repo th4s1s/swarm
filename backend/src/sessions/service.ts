@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
-import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { db } from '../db/index.js';
 import { config } from '../config.js';
 import { badRequest, conflict, notFound } from '../lib/errors.js';
@@ -11,7 +11,9 @@ import {
   auditDbPath,
   auditDir,
   consolidatedReportPath,
+  isPathInside,
   resumeNotePath,
+  vulnReportPath,
 } from '../lib/paths.js';
 import { readAuditSnapshot, type AuditSnapshot } from '../lib/auditdb.js';
 import { getProjectById, type ProjectRow } from '../projects/repo.js';
@@ -207,6 +209,27 @@ export function getReport(id: string): SessionReport {
       reports.find((r) => r.finding_id === s.fork_finding_id || (finalId && r.finding_id === finalId)) ?? null;
   }
   return { consolidated, reports, focused };
+}
+
+const REPORT_TARGET_RE = /^[A-Za-z0-9._-]{1,100}$/;
+
+/** Overwrite a report file the viewer shows: `consolidated` -> report.md, otherwise the per-finding
+ * artifacts/<finding-id>-vuln-report.md. Returns the refreshed report set. */
+export function saveReport(id: string, target: string, markdown: string): SessionReport {
+  const s = mustSession(id);
+  const project = mustProject(s.project_id);
+  const dir = auditDir(project.name, s.session_name);
+  let file: string;
+  if (target === 'consolidated') {
+    file = consolidatedReportPath(project.name, s.session_name);
+  } else {
+    if (!REPORT_TARGET_RE.test(target)) throw badRequest('invalid report target');
+    file = vulnReportPath(project.name, s.session_name, target);
+  }
+  if (!isPathInside(dir, file)) throw badRequest('invalid report path');
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, markdown);
+  return getReport(id);
 }
 
 export interface SessionDetail {

@@ -33,6 +33,11 @@ const patchSchema = z.object({
   config: configSchema.optional(),
 });
 
+const reportSchema = z.object({
+  target: z.string().min(1).max(100), // 'consolidated' or a finding id
+  markdown: z.string().max(2_000_000),
+});
+
 export async function registerSessions(app: FastifyInstance): Promise<void> {
   await app.register(async (r) => {
     r.addHook('preHandler', app.authGuard);
@@ -53,6 +58,11 @@ export async function registerSessions(app: FastifyInstance): Promise<void> {
     r.get('/api/sessions/:id/family', async (req) => svc.getFamily((req.params as { id: string }).id));
     r.get('/api/sessions/:id/findings', async (req) => svc.getFindings((req.params as { id: string }).id));
     r.get('/api/sessions/:id/report', async (req) => svc.getReport((req.params as { id: string }).id));
+
+    r.patch('/api/sessions/:id/report', async (req) => {
+      const b = reportSchema.parse(req.body);
+      return svc.saveReport((req.params as { id: string }).id, b.target, b.markdown);
+    });
 
     r.patch('/api/sessions/:id', async (req) => {
       const body = patchSchema.parse(req.body);

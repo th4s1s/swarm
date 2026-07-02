@@ -74,6 +74,15 @@ export function useReport(id: string, refetchInterval: number | false = false) {
   });
 }
 
+export function useSaveReport(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (b: { target: string; markdown: string }) =>
+      api.patch<SessionReport>(`/api/sessions/${id}/report`, b),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.report(id) }),
+  });
+}
+
 // --- runner ---
 export interface ModelOption {
   id: string;
