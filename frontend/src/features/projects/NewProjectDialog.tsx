@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTrigger } from
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { useZipDrop } from '@/lib/dropzone';
 import { useCreateGitProject, useCreateZipProject } from './api';
 
 const NAME_RE = /^[A-Za-z0-9_-]+$/;
@@ -19,6 +21,7 @@ export function NewProjectDialog() {
   const [url, setUrl] = useState('');
   const [token, setToken] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const { dragging, handlers } = useZipDrop(setFile);
 
   const nameOk = NAME_RE.test(name);
   const reset = () => {
@@ -114,9 +117,15 @@ export function NewProjectDialog() {
           </TabsContent>
 
           <TabsContent value="zip" className="mt-3 flex flex-col gap-3">
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-surface-2/40 px-4 py-8 text-center hover:border-primary/50">
+            <label
+              {...handlers}
+              className={cn(
+                'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center',
+                dragging ? 'border-primary bg-primary/10' : 'border-line bg-surface-2/40 hover:border-primary/50',
+              )}
+            >
               <UploadCloud className="size-6 text-primary/70" />
-              <span className="text-sm text-fg">{file ? file.name : 'Choose a .zip file'}</span>
+              <span className="text-sm text-fg">{file ? file.name : 'Choose or drop a .zip file'}</span>
               <span className="text-[11px] text-muted">extracted into /vibe/hack/projects/&lt;name&gt;</span>
               <input
                 type="file"

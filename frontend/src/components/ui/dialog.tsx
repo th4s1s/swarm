@@ -17,7 +17,7 @@ export function DialogContent({
       <D.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm data-[state=open]:animate-fade-in" />
       <D.Content
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface p-5 shadow-glow-lg focus:outline-none data-[state=open]:animate-fade-in',
+          'fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface p-5 shadow-glow-lg focus:outline-none data-[state=open]:animate-dialog-in',
           className,
         )}
         {...props}

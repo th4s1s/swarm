@@ -18,6 +18,8 @@ import { StatusPill } from '@/components/StatusPill';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ErrorNote, Loading } from '@/components/ui/misc';
 import { shortSha } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { useZipDrop } from '@/lib/dropzone';
 import { NewSessionDialog } from '@/features/sessions/NewSessionDialog';
 import { LiveNoteEditor } from './LiveNoteEditor';
 import {
@@ -223,13 +225,20 @@ function GitCard({ id, currentRef, currentCommit }: { id: string; currentRef: st
 function ZipCard({ id }: { id: string }) {
   const reupload = useReuploadZip(id);
   const [file, setFile] = useState<File | null>(null);
+  const { dragging, handlers } = useZipDrop(setFile);
   return (
     <Card>
       <CardHeader><CardTitle>Source (zip)</CardTitle></CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-surface-2/40 px-4 py-6 hover:border-primary/50">
+        <label
+          {...handlers}
+          className={cn(
+            'flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-6',
+            dragging ? 'border-primary bg-primary/10' : 'border-line bg-surface-2/40 hover:border-primary/50',
+          )}
+        >
           <UploadCloud className="size-5 text-primary/70" />
-          <span className="text-sm">{file ? file.name : 'Re-upload a .zip (replaces current source)'}</span>
+          <span className="text-sm">{file ? file.name : 'Re-upload or drop a .zip (replaces current source)'}</span>
           <input type="file" accept=".zip" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
         <Button

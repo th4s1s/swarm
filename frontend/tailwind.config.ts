@@ -44,10 +44,16 @@ export default {
           '50%': { opacity: '0.5', boxShadow: '0 0 2px rgba(41,255,160,0.3)' },
         },
         fadeIn: { from: { opacity: '0', transform: 'translateY(2px)' }, to: { opacity: '1', transform: 'none' } },
+        // Keeps the centering translate throughout so the dialog fades in centered, not from a corner.
+        dialogIn: {
+          from: { opacity: '0', transform: 'translate(-50%, -50%) scale(0.98)' },
+          to: { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
+        },
       },
       animation: {
         'pulse-glow': 'pulseGlow 1.4s ease-in-out infinite',
         'fade-in': 'fadeIn 0.18s ease-out',
+        'dialog-in': 'dialogIn 0.18s ease-out',
       },
     },
   },

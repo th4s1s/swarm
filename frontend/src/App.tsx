@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -12,6 +13,18 @@ import { ResourcesPage } from '@/features/resources/ResourcesPage';
 import { ConfigPage } from '@/features/config/ConfigPage';
 
 export function App() {
+  // Neutralize stray file drops anywhere outside a dropzone so the browser does not navigate
+  // to / download the file (which would blow away the SPA). Dropzones keep their own onDrop.
+  useEffect(() => {
+    const prevent = (e: DragEvent) => e.preventDefault();
+    window.addEventListener('dragover', prevent);
+    window.addEventListener('drop', prevent);
+    return () => {
+      window.removeEventListener('dragover', prevent);
+      window.removeEventListener('drop', prevent);
+    };
+  }, []);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
