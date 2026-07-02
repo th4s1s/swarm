@@ -3,12 +3,20 @@ import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Badge, SeverityBadge } from '@/components/ui/badge';
 import { EmptyState, Loading } from '@/components/ui/misc';
 import { severityRank } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { useFindings } from '@/features/sessions/api';
 
 const VERDICT_TONE: Record<string, 'primary' | 'danger' | 'neutral'> = {
   TRUE_POSITIVE: 'primary',
   FALSE_POSITIVE: 'neutral',
   DUPLICATE: 'neutral',
+};
+
+// Group lifecycle: pending (recon queued) -> mapped (feature-mapped) -> audited (deep audit done).
+const GROUP_STATUS_COLOR: Record<string, string> = {
+  pending: 'text-warn',
+  mapped: 'text-sev-info',
+  audited: 'text-primary',
 };
 
 export function FindingsPanel({
@@ -48,7 +56,12 @@ export function FindingsPanel({
           {snap.groups.map((g) => (
             <Badge key={g.id} tone="neutral" title={g.description ?? ''}>
               <span className="text-primary">{g.id}</span> {g.name}
-              {g.status ? <span className="text-muted/70"> · {g.status}</span> : null}
+              {g.status ? (
+                <span className="text-muted/70">
+                  {' · '}
+                  <span className={cn('font-medium', GROUP_STATUS_COLOR[g.status] ?? 'text-muted')}>{g.status}</span>
+                </span>
+              ) : null}
             </Badge>
           ))}
         </div>
