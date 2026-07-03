@@ -12,7 +12,7 @@ import { StatusPill } from '@/components/StatusPill';
 import { Badge } from '@/components/ui/badge';
 import { ErrorNote, Loading } from '@/components/ui/misc';
 import { cn } from '@/lib/utils';
-import { tokens as fmtTokens } from '@/lib/format';
+import { tokens as fmtTokens, usd } from '@/lib/format';
 import { qk } from '@/lib/query';
 import { useSessionSocket } from '@/lib/ws';
 import type { FamilyMember, RunRow, StreamEvent, WsMessage } from '@/lib/types';
@@ -25,7 +25,7 @@ import { ReportView } from '@/features/findings/ReportView';
 import { LiveNoteEditor } from '@/features/projects/LiveNoteEditor';
 import { ForkDialog } from './ForkDialog';
 import { SessionConfigCard } from './SessionConfigCard';
-import { useRunEvents, useRunnerOptions, useRuns, useSession, useSessionFamily } from './api';
+import { useRunEvents, useRunnerOptions, useRuns, useSession, useSessionFamily, useSessionUsage } from './api';
 
 export function SessionView() {
   const { id = '' } = useParams();
@@ -50,6 +50,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
         qc.invalidateQueries({ queryKey: qk.findings(id) });
         qc.invalidateQueries({ queryKey: qk.report(id) });
         qc.invalidateQueries({ queryKey: qk.session(id) });
+        qc.invalidateQueries({ queryKey: qk.sessionUsage(id) });
       }
       if (m.kind === 'run') qc.invalidateQueries({ queryKey: qk.runs(id) });
       if (m.kind === 'session' && m.claude_session_id) qc.invalidateQueries({ queryKey: qk.session(id) });
@@ -134,6 +135,8 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
           )}
         </div>
       </div>
+
+      <AuditUsage sessionId={id} active={running} />
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 lg:flex-row">
         {/* Fork family tree (root + all forks, recursively) - left sidebar so it never
@@ -238,6 +241,48 @@ function Meta({ label, value, mono }: { label: string; value: string; mono?: boo
       <span className="text-muted">{label}:</span>
       <span className={cn('text-fg/80', mono && 'font-mono')}>{value}</span>
     </span>
+  );
+}
+
+/**
+ * Per-audit token + cost meter across the whole session family (root + forks), bucketed by phase.
+ * Collapsed by default to one glanceable line; expand for the per-phase breakdown. Informational only.
+ */
+function AuditUsage({ sessionId, active }: { sessionId: string; active: boolean }) {
+  const { data: u } = useSessionUsage(sessionId, active ? 5000 : false);
+  if (!u || u.total.runCount === 0) return null;
+  const t = u.total;
+  const maxCost = Math.max(...u.byPhase.map((b) => b.costUsd), 0.0001);
+  return (
+    <details className="border-b border-line px-6 py-2 text-xs [&_summary::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer select-none flex-wrap items-center gap-x-6 gap-y-1">
+        <span className="font-semibold text-fg">Audit cost {usd(t.costUsd)}</span>
+        <Meta label="Tokens" value={fmtTokens(t.totalTokens)} />
+        <Meta label="In" value={fmtTokens(t.tokensIn)} />
+        <Meta label="Out" value={fmtTokens(t.tokensOut)} />
+        <Meta label="Cache" value={fmtTokens(t.cacheRead + t.cacheWrite)} />
+        <Meta label="Runs" value={String(t.runCount)} />
+        <span className="text-muted/60">phases + forks · informational · click to expand</span>
+      </summary>
+      <div className="mt-2 grid gap-1">
+        {u.byPhase.map((b) => (
+          <div key={b.bucket} className="flex items-center gap-2">
+            <span className="w-16 shrink-0 font-mono text-muted">{b.bucket}</span>
+            <div className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-line">
+              <div
+                className="h-full rounded-full bg-primary shadow-glow-sm"
+                style={{ width: `${Math.round((b.costUsd / maxCost) * 100)}%` }}
+              />
+            </div>
+            <span className="w-14 shrink-0 tabular-nums text-fg/90">{usd(b.costUsd)}</span>
+            <span className="w-20 shrink-0 tabular-nums text-muted">{fmtTokens(b.totalTokens)} tok</span>
+            <span className="text-muted/60">
+              {b.runCount} run{b.runCount === 1 ? '' : 's'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }
 

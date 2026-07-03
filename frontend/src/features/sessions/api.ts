@@ -83,6 +83,30 @@ export function useSaveReport(id: string) {
   });
 }
 
+// --- per-audit token meter (informational) ---
+export interface UsageBucket {
+  bucket: string;
+  tokensIn: number;
+  tokensOut: number;
+  cacheRead: number;
+  cacheWrite: number;
+  totalTokens: number;
+  costUsd: number;
+  runCount: number;
+}
+export interface SessionUsage {
+  byPhase: UsageBucket[];
+  total: Omit<UsageBucket, 'bucket'>;
+  generatedAt: string;
+}
+export function useSessionUsage(id: string, refetchInterval: number | false = false) {
+  return useQuery({
+    queryKey: qk.sessionUsage(id),
+    queryFn: () => api.get<SessionUsage>(`/api/sessions/${id}/usage`),
+    refetchInterval,
+  });
+}
+
 // --- runner ---
 export interface ModelOption {
   id: string;

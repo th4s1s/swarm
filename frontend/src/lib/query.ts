@@ -19,6 +19,7 @@ export const qk = {
   family: (id: string) => ['family', id] as const,
   findings: (id: string) => ['findings', id] as const,
   report: (id: string) => ['report', id] as const,
+  sessionUsage: (id: string) => ['sessionUsage', id] as const,
   runs: (id: string) => ['runs', id] as const,
   runEvents: (id: string) => ['runEvents', id] as const,
   runnerOptions: ['runnerOptions'] as const,

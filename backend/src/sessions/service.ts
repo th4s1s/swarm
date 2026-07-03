@@ -5,7 +5,7 @@ import { db } from '../db/index.js';
 import { config } from '../config.js';
 import { badRequest, conflict, notFound } from '../lib/errors.js';
 import { effective } from '../lib/settings.js';
-import { auditTimestamp } from '../lib/util.js';
+import { auditTimestamp, nowIso } from '../lib/util.js';
 import {
   appStatePath,
   auditDbPath,
@@ -16,6 +16,7 @@ import {
   vulnReportPath,
 } from '../lib/paths.js';
 import { readAuditSnapshot, type AuditSnapshot } from '../lib/auditdb.js';
+import { listBySession } from '../runner/repo.js';
 import { getProjectById, type ProjectRow } from '../projects/repo.js';
 import {
   deleteSession,
@@ -353,6 +354,111 @@ export function getFindings(id: string): AuditSnapshot {
   const s = mustSession(id);
   const project = mustProject(s.project_id);
   return readAuditSnapshot(auditDbPath(project.name, s.session_name));
+}
+
+// ---- Per-audit token meter (informational only; never gates/pauses a run) ----
+
+const PHASE_ORDER = ['recon', 'deploy', 'audit', 'fpcheck', 'verify', 'report', 'full', 'source', 'ad-hoc'];
+
+export interface UsageBucket {
+  bucket: string; // phase, else mode (full/source), else 'ad-hoc' (custom/steer/compact)
+  tokensIn: number;
+  tokensOut: number;
+  cacheRead: number;
+  cacheWrite: number;
+  totalTokens: number;
+  costUsd: number;
+  runCount: number;
+}
+export type UsageTotal = Omit<UsageBucket, 'bucket'>;
+export interface SessionUsage {
+  byPhase: UsageBucket[];
+  total: UsageTotal;
+  generatedAt: string;
+}
+
+/**
+ * Sum token usage across ALL `result` events in a run's event-log JSONL. `runs.usage_json`
+ * stores only the LAST turn (deliberately - the context-occupancy meter depends on that), so for
+ * accurate per-run totals we re-sum the log. Missing/unreadable log -> zeros (cost still counts).
+ */
+function sumRunTokens(logPath: string | null): { in: number; out: number; cacheRead: number; cacheWrite: number } {
+  const z = { in: 0, out: 0, cacheRead: 0, cacheWrite: 0 };
+  if (!logPath || !existsSync(logPath)) return z;
+  let text: string;
+  try {
+    text = readFileSync(logPath, 'utf8');
+  } catch {
+    return z;
+  }
+  for (const line of text.split('\n')) {
+    if (!line.includes('"type":"result"')) continue; // cheap prefilter; result events are sparse
+    try {
+      const o = JSON.parse(line) as Record<string, unknown>;
+      if (o['type'] !== 'result') continue;
+      const u = o['usage'] as Record<string, unknown> | undefined;
+      if (!u) continue;
+      z.in += Number(u['input_tokens'] ?? 0);
+      z.out += Number(u['output_tokens'] ?? 0);
+      z.cacheWrite += Number(u['cache_creation_input_tokens'] ?? 0);
+      z.cacheRead += Number(u['cache_read_input_tokens'] ?? 0);
+    } catch {
+      /* skip malformed line */
+    }
+  }
+  return z;
+}
+
+/**
+ * Per-audit token + cost rollup across the whole session family (root + forks), bucketed by phase.
+ * Cost is Claude's own per-invocation `total_cost_usd` (verified per-invocation, so safe to sum);
+ * tokens are re-summed from each run's event log. Purely informational.
+ */
+const usageCache = new Map<string, { at: number; data: SessionUsage }>();
+const USAGE_TTL_MS = 4000;
+
+export function getSessionUsage(id: string): SessionUsage {
+  const s = mustSession(id);
+  const hit = usageCache.get(s.session_name); // family shares session_name; cache across members
+  if (hit && Date.now() - hit.at < USAGE_TTL_MS) return hit.data;
+  const family = getFamily(id);
+  const buckets = new Map<string, UsageBucket>();
+  for (const member of family.members) {
+    for (const run of listBySession(member.id)) {
+      if (run.status === 'queued') continue; // not run yet
+      const key = run.phase ?? run.mode ?? 'ad-hoc';
+      const b =
+        buckets.get(key) ??
+        { bucket: key, tokensIn: 0, tokensOut: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, costUsd: 0, runCount: 0 };
+      const t = sumRunTokens(run.event_log_path);
+      b.tokensIn += t.in;
+      b.tokensOut += t.out;
+      b.cacheRead += t.cacheRead;
+      b.cacheWrite += t.cacheWrite;
+      b.totalTokens += t.in + t.out + t.cacheRead + t.cacheWrite;
+      b.costUsd += run.total_cost_usd ?? 0;
+      b.runCount += 1;
+      buckets.set(key, b);
+    }
+  }
+  const rank = (k: string): number => {
+    const i = PHASE_ORDER.indexOf(k);
+    return i < 0 ? PHASE_ORDER.length : i;
+  };
+  const byPhase = [...buckets.values()].sort((a, b) => rank(a.bucket) - rank(b.bucket));
+  const total: UsageTotal = { tokensIn: 0, tokensOut: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, costUsd: 0, runCount: 0 };
+  for (const b of byPhase) {
+    total.tokensIn += b.tokensIn;
+    total.tokensOut += b.tokensOut;
+    total.cacheRead += b.cacheRead;
+    total.cacheWrite += b.cacheWrite;
+    total.totalTokens += b.totalTokens;
+    total.costUsd += b.costUsd;
+    total.runCount += b.runCount;
+  }
+  const result: SessionUsage = { byPhase, total, generatedAt: nowIso() };
+  usageCache.set(s.session_name, { at: Date.now(), data: result });
+  return result;
 }
 
 export function updateMeta(
