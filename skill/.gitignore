@@ -1,0 +1,13 @@
+# Audit artifacts (don't commit per-project results)
+reports/
+*.db
+*.bak.*
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Custom
+chat.json
