@@ -55,7 +55,7 @@ export const config = {
 
   projectsDir: env('PROJECTS_DIR', '/vibe/hack/projects'),
   auditsDir: env('AUDITS_DIR', '/vibe/hack/audits'),
-  skillDir: env('SKILL_DIR', '/vibe/hack/skill'),
+  skillDir: env('SKILL_DIR', resolve(BACKEND_ROOT, '..', 'skill')), // vendored in this repo at ./skill
 
   claudeBin: env('CLAUDE_BIN', 'claude'),
   defaultModel: env('DEFAULT_MODEL', ''),

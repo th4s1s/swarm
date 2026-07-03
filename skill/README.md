@@ -15,15 +15,17 @@ and workflow are the same; this build supports **Claude Code CLI only**.
 
 ## Install
 
+This skill is bundled inside the **SWARM** app repo (under `skill/`). Install it into Claude Code with:
+
 ```bash
-./install.sh            # symlink ~/.claude/skills/vibehack + the command launchers -> this repo
-./install.sh --uninstall
+bash skill/install.sh          # from the app repo root  (or:  bash install.sh  from this skill dir)
+bash skill/install.sh --uninstall
 ```
 
-`install.sh` **symlinks** both halves to this repo, so all edits are picked up live (no reinstall
-needed while iterating):
-- `~/.claude/skills/vibehack` -> the repo (`SKILL.md`, `workflows/`, `references/`);
-- `~/.claude/commands/vibehack.md` and `~/.claude/commands/vibehack/` -> the repo launchers. The
+`install.sh` **symlinks** both halves to this skill directory, so all edits are picked up live (no
+reinstall needed while iterating):
+- `~/.claude/skills/vibehack` -> this skill dir (`SKILL.md`, `workflows/`, `references/`);
+- `~/.claude/commands/vibehack.md` and `~/.claude/commands/vibehack/` -> the launchers here. The
   launchers reference the skill via the fixed install path `~/.claude/skills/vibehack`, so they need
   no substitution and stay in sync automatically.
 

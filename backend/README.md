@@ -1,7 +1,8 @@
 # SWARM - backend
 
 Backend for **SWARM**, a parallel-agent source-code security-audit app. It drives the
-**Claude Code CLI** to run the `vibehack` audit skill (at `/vibe/hack/skill`), manages projects and
+**Claude Code CLI** to run the `vibehack` audit skill (vendored in this repo at `../skill`, installed
+via `../skill/install.sh`), manages projects and
 audit sessions, streams each run live over WebSocket, forks sessions for per-finding verification, and
 exposes ops panels (MCP, Claude quota, token usage, Docker resources, app config).
 
@@ -16,7 +17,8 @@ Stack: **Fastify + TypeScript**, **SQLite** (`better-sqlite3`). Drives the `clau
 - Node.js >= 22 (uses the global `fetch`/`WebSocket`).
 - `claude` CLI logged in (`~/.claude/.credentials.json` present) - used for runs, quota, MCP.
 - `git`, `unzip`-capable env, and Docker (for the Resources panel).
-- The skill roots exist: `/vibe/hack/projects`, `/vibe/hack/audits`, `/vibe/hack/skill`.
+- The audit roots exist: `/vibe/hack/projects`, `/vibe/hack/audits` (override via `PROJECTS_DIR` / `AUDITS_DIR`).
+- The `vibehack` skill is installed into Claude Code: run `../skill/install.sh` once.
 
 ## Setup
 
@@ -60,7 +62,7 @@ runs serially per session, bounded globally by `MAX_CONCURRENT_RUNS`.
 ## Skill integration
 
 When the backend launches the skill it sets `VIBEHACK_APP=1`, `VIBEHACK_AUDIT_DIR`, `VIBEHACK_PROJECT`
-and cwd = the project root. The skill (see `/vibe/hack/skill/references/app-integration.md`) uses the
+and cwd = the project root. The skill (see `../skill/references/app-integration.md`) uses the
 pre-created workspace and writes `<AUDIT_DIR>/.app/state.json` at each phase boundary. Findings/groups
 are read directly from each audit's `audit.db` (read-only). With those env vars unset, the skill runs
 exactly as it did standalone.
