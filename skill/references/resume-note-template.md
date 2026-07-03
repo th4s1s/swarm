@@ -87,7 +87,7 @@ Total: <N> observations.
 
 **Each fork must:**
 1. Read this resume note + `/vibe/hack/audits/<project>/<project>-live-instance.md` first
-2. For each finding, read its section in `artifacts/G<n>-findings.md`
+2. For each finding, read its row in `vh_findings` (`SELECT * FROM vh_findings WHERE id = '<finding-id>'`)
 3. BACK UP any config before edits (`cp <file> /tmp/<file>.bak.fork-<X>-<finding-id>`); RESTORE at end
 4. **WARNING:** user may have hand-edited config files between phases - re-read before editing
 5. Reproduce PoC against live instance

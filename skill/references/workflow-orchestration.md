@@ -59,7 +59,7 @@ phase('Audit')
 await agent(`${ref} Read ${SK}/workflows/audit.md (Steps 1–3). Best-effort CVE/patch-bypass ingest into ${AUDIT}/audit.db - run gh NON-interactively; on auth/network failure note "CVE ingest skipped" and continue. Do NOT run the deep-audit subagents.`, { phase:'Audit' })
 
 await parallel(recon.groups.map(g => () =>                       // fan-out: one writable agent per group
-  agent(`${ref} Read ${SK}/workflows/audit.md (Step 4) + references/phase4-deep-audit.md. Deep-audit group ${g.id} SOURCE-ONLY: no live instance, no live PoC, no config edits; every finding verified='source-only'. Write ${AUDIT}/artifacts/${g.id}-findings.md + INSERT vh_findings. Return severity counts.`,
+  agent(`${ref} Read ${SK}/workflows/audit.md (Step 4) + references/phase4-deep-audit.md. Deep-audit group ${g.id} SOURCE-ONLY: no live instance, no live PoC, no config edits; every finding verified='source-only'. INSERT each finding (all columns) into vh_findings - the sole store, no findings file. Return severity counts.`,
     { label:`audit:${g.id}`, phase:'Audit' })))
 
 phase('FP-check')

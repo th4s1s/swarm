@@ -45,6 +45,10 @@ Feature group: {group_id} - {group_name}
 {test_instance_details}
 
 ## Known Findings (DO NOT re-discover these)
+
+These are the advisories relevant to your group (filtered by file overlap; the full set lives in
+`known-findings.md`). Do not re-report them, and probe any listed patch-bypass sites in your files.
+
 {known_findings_list}
 
 ## What to Hunt For
@@ -104,36 +108,19 @@ Do NOT:
 
 ## Output Format
 
-Return findings as a markdown list. Each finding uses this exact format:
+Do NOT return findings as prose. For **each** finding, INSERT one row into `vh_findings` (the durable
+store - there is no findings markdown file) with every column populated:
 
----
-### {id}: {title}
+- `id` = `{group_id}-F{n}` (number them within your group), `group_id`, `title`
+- `severity` (CRITICAL|HIGH|MEDIUM|LOW), `confidence` (1-10, must be ≥ 8), `cwe` (CWE-NNN)
+- `location` (`file:line` or `function@address`)
+- `root_cause`, `impact`, `attacker_position`, `boundary_crossed`
+- `data_flow` (source → processing → sink)
+- `verified` (source-only|autorev-confirmed|live-poc), `poc` (if verified), `remediation`
 
-| Field | Value |
-|-------|-------|
-| Severity | {severity} |
-| Confidence | {confidence}/10 |
-| CWE | {cwe} |
-| Location | `{file}:{line}` or `{function}@{address}` |
-| Attacker Position | {attacker_position} |
-| Boundary Crossed | {boundary_crossed} |
-
-**Root Cause**: {explanation}
-
-**Data Flow**: {source} → {processing} → {sink}
-
-**Impact**: {impact_description}
-
-**PoC** (if verified):
-```
-{poc_request_or_script}
-```
-
-**Remediation**: {fix_description}
----
-
-If you find zero vulnerabilities in your group, report that explicitly:
-"No vulnerabilities found in {group_id}. All entry points reviewed: {list}."
+Then **return only a compact summary** to the orchestrator - counts by severity. For a group with no
+findings, say so explicitly: "No vulnerabilities found in {group_id}. All entry points reviewed:
+{list}." Do not paste the findings back; they live in `vh_findings`.
 ```
 
 ### Test Instance Details (fill into template if available)
@@ -149,18 +136,22 @@ If no test instance: `No test instance available. Provide source-level analysis 
 
 ## Post-Collection Processing
 
-After all subagents return:
+The subagents are the **sole writers** of `vh_findings` - each inserts its own group's findings
+(group-scoped ids `G<n>-F1`, `G<n>-F2`, ...) directly during its run. The orchestrator does **not**
+parse subagent output and does **not** re-insert anything (a second INSERT would collide on the
+primary key and drop columns). After all subagents return, the orchestrator only:
 
-1. **Parse findings**: Extract structured data from each subagent's markdown output
-2. **Assign sequential IDs**: Within each group (G1-F1, G1-F2, ..., G2-F1, ...)
-3. **Insert into SQL**:
+1. **Reads counts** to confirm the writes landed:
    ```sql
-   INSERT INTO vh_findings (id, group_id, title, severity, confidence,
-       location, root_cause, impact, verified, boundary_crossed,
-       attacker_position, cwe)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+   SELECT group_id, severity, COUNT(*) FROM vh_findings GROUP BY group_id, severity;
    ```
-4. **Dedup quick-check**: If two findings from different groups describe the same vulnerability at the same code location, keep the one with higher confidence and note the duplicate.
+2. **Dedup quick-check (query, never re-parse)**: flag findings from different groups at the same code
+   location, keep the higher-confidence one, and note the duplicate (fpcheck issues the formal
+   DUPLICATE verdict later):
+   ```sql
+   SELECT location, GROUP_CONCAT(id), MAX(confidence) FROM vh_findings
+   GROUP BY location HAVING COUNT(*) > 1;
+   ```
 
 ## Quality Signals
 

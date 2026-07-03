@@ -68,15 +68,37 @@ export function parseConfig(json: string): SessionConfig {
   }
 }
 
-/** Create the audit workspace (idempotent) and an empty audit.db so reads work pre-run. */
+/**
+ * Create audit.db (if missing) and apply the vibehack schema. Idempotent.
+ * The schema lives in the vendored skill (`skill/schema.sql`) as the single source of truth;
+ * we run it here so the agent never has to create tables (zero LLM tokens, no reactive DDL).
+ * If the file can't be read (broken install), we degrade to a valid empty db rather than
+ * failing session creation - a subsequent run then fails loudly instead of silently.
+ */
+function seedAuditSchema(dbPath: string): void {
+  let d: Database.Database | null = null;
+  try {
+    d = new Database(dbPath); // creates the file if missing
+    d.exec(readFileSync(join(config.skillDir, 'schema.sql'), 'utf8'));
+  } catch {
+    try {
+      if (!existsSync(dbPath)) new Database(dbPath).close(); // touch -> valid empty sqlite file
+    } catch {
+      /* ignore */
+    }
+  } finally {
+    d?.close();
+  }
+}
+
+/** Create the audit workspace (idempotent) and a schema-seeded audit.db so reads work pre-run. */
 export function ensureWorkspace(projectName: string, sessionName: string): void {
   const dir = auditDir(projectName, sessionName);
   for (const sub of ['files', 'artifacts', 'archived-poc']) {
     mkdirSync(join(dir, sub), { recursive: true });
   }
   mkdirSync(join(dir, '.app', 'runs'), { recursive: true });
-  const dbp = auditDbPath(projectName, sessionName);
-  if (!existsSync(dbp)) new Database(dbp).close(); // touch -> valid empty sqlite file
+  seedAuditSchema(auditDbPath(projectName, sessionName));
 }
 
 function mustProject(projectId: string): ProjectRow {

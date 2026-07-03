@@ -7,19 +7,11 @@
 
 ---
 
-## Step 1 - Create verdicts table
+## Step 1 - Verdicts table (pre-created)
 
-```sql
-CREATE TABLE IF NOT EXISTS vh_fp_verdicts (
-    finding_id TEXT PRIMARY KEY,
-    verdict TEXT NOT NULL,        -- TRUE_POSITIVE, FALSE_POSITIVE, DUPLICATE
-    reason TEXT,
-    final_severity TEXT,
-    final_id TEXT,                -- F-N for report (assigned after this phase)
-    merged_into TEXT,             -- canonical finding_id when DUPLICATE
-    reviewed_at TEXT DEFAULT (datetime('now'))
-);
-```
+`vh_fp_verdicts` is created at workspace init ([../schema.sql](../schema.sql)) - it already exists, do
+**not** create it. Columns: `finding_id (PK), verdict (TRUE_POSITIVE|FALSE_POSITIVE|DUPLICATE), reason,
+final_severity, final_id (F-N for report), merged_into (canonical id when DUPLICATE), reviewed_at`.
 
 ## Step 2 - Build batches
 

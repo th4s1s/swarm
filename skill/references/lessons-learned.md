@@ -8,14 +8,14 @@ This file records pitfalls observed in actual vibehack runs. Read it **before** 
 
 **Observed in:** A prior Phase 4 run. Six of seven groups returned no findings to SQL.
 
-**Symptom:** Subagent returns analytical text but never runs `INSERT` statements or creates `artifacts/G<n>-findings.md` files. The orchestrator sees output that looks like findings but the database stays empty.
+**Symptom:** Subagent returns analytical text but never runs `INSERT` statements. The orchestrator sees output that looks like findings but `vh_findings` stays empty.
 
 **Root cause:** a read-only agent type (`Explore`) has no terminal, no file-write, and no SQL tools - it silently does nothing when asked to write to disk.
 
 **Prevention:**
 - Use a **writable** `general-purpose` `Task` subagent for any subagent that must write artifacts, run SQL, or hit the live instance. See SKILL.md → *Tools & subagents*.
 - Use a **read-only** `Explore` agent ONLY for pure read-only research and Q&A.
-- If you encounter this mid-pipeline: re-spawn the failed subagent as a **writable** agent, OR manually materialize the findings from the agent's return blob into `artifacts/G<n>-findings.md` + SQL inserts. Don't lose findings.
+- If you encounter this mid-pipeline: re-spawn the failed subagent as a **writable** agent, OR manually materialize the findings from the agent's return blob into `vh_findings` via SQL inserts. Don't lose findings.
 
 ---
 
@@ -62,12 +62,12 @@ This file records pitfalls observed in actual vibehack runs. Read it **before** 
 
 ## 5. Subagent scratch files accumulate
 
-**Observed in:** Several subagents wrote scratch files outside the canonical `<AUDIT_DIR>/files/` and `<AUDIT_DIR>/artifacts/` during their run. After the orchestrator consolidated into `artifacts/G<n>-findings.md`, these intermediate files lingered.
+**Observed in:** Several subagents wrote scratch files outside the canonical `<AUDIT_DIR>/files/` and `<AUDIT_DIR>/artifacts/` during their run. After the findings landed in `vh_findings`, these intermediate files lingered.
 
 **Symptom:** Stale duplicate scratch files accumulate; future sessions get confused about which file is the canonical truth.
 
 **Prevention:**
-- Subagent prompts should explicitly say: "Write your output to `<AUDIT_DIR>/artifacts/G<n>-findings.md`, not to scratch files elsewhere."
+- Subagent prompts should explicitly say: "Write findings to `vh_findings` (and any evidence to `<AUDIT_DIR>/artifacts/`), not to scratch files elsewhere."
 - After consolidating, delete any intermediate scratch files left outside `<AUDIT_DIR>/`.
 - Resume note should declare which file is canonical for each piece of state.
 

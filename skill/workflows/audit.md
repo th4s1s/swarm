@@ -61,44 +61,26 @@ Patched files: <list>
 - `<file>:<lines>` - <why suspect>
 ```
 
-## Step 3 - Create the findings table
+## Step 3 - Findings table (pre-created)
 
-```sql
-CREATE TABLE IF NOT EXISTS vh_findings (
-    id TEXT PRIMARY KEY,                -- e.g., 'G1-F1'
-    group_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    severity TEXT NOT NULL,             -- CRITICAL, HIGH, MEDIUM, LOW
-    confidence INTEGER NOT NULL,        -- 1-10
-    cwe TEXT,
-    location TEXT NOT NULL,
-    root_cause TEXT NOT NULL,
-    impact TEXT NOT NULL,
-    attacker_position TEXT,
-    boundary_crossed TEXT,
-    data_flow TEXT,
-    verified TEXT DEFAULT 'source-only', -- source-only, autorev-confirmed, live-poc
-    poc TEXT,
-    remediation TEXT,
-    artifact_path TEXT,                  -- path to per-group artifact section
-    created_at TEXT DEFAULT (datetime('now'))
-);
-```
+`vh_findings` is created at workspace init ([../schema.sql](../schema.sql)) - it already exists, do
+**not** create it. Columns to populate: `id, group_id, title, severity, confidence, cwe, location,
+root_cause, impact, attacker_position, boundary_crossed, data_flow, verified, poc, remediation`
+(`artifact_path` is legacy/unused; `created_at` defaults).
 
 ## Step 4 - Parallel deep-audit subagents
 
-**Agent type**: a **writable** subagent (must write artifacts + SQL - not a read-only one). Use the strongest model available. See SKILL.md → *Tools & subagents*.
+**Agent type**: a **writable** subagent (must run SQL inserts + write any evidence files - not a read-only one). Use the strongest model available. See SKILL.md → *Tools & subagents*.
 
 Spawn ONE subagent per feature group, ALL in parallel.
 
 Each subagent prompt (template from [../references/phase4-deep-audit.md](../references/phase4-deep-audit.md)) must include:
 
 - Group ID + the full content of `files/G<n>-mapping.md`
-- The known-findings list (so they avoid duplicates AND probe the patch-bypass sites)
+- The known-findings entries **relevant to this group** - advisories whose patched/probe files (from `known-findings.md`) fall in this group's file set (per the group's `G<n>-mapping.md` "Files" field), plus any advisory with no clear file anchor. **When in doubt, include it - never drop an advisory from the run.** (So they avoid duplicates AND probe the patch-bypass sites, without every group carrying all N advisories.)
 - Source access instructions
 - Live instance details (proxy/API URLs, sample credentials, bind-mounted config locations)
-- **Instructions to write a per-group artifact** at `<AUDIT_DIR>/artifacts/G<n>-findings.md` containing each finding in detail (so we can re-read after context compaction)
-- **Instructions to INSERT each finding into `vh_findings`** with `artifact_path` set
+- **Instructions to INSERT each finding directly into `vh_findings`** as its sole, authoritative output - the subagent is the **only writer** of its group's rows (there is no separate findings markdown). Assign group-scoped ids (`G<n>-F1`, `G<n>-F2`, ...) and populate **every** analytical column so each row is self-contained: `id, group_id, title, severity, confidence, cwe, location, root_cause, impact, attacker_position, boundary_crossed, data_flow, verified, poc, remediation`. Write rows incrementally and, after any mid-audit compaction, recover by re-querying its own rows (`SELECT ... FROM vh_findings WHERE group_id=?`) - `vh_findings` is the durable store, not a file.
 - Live-PoC verification policy: attempt live PoC for HIGH/CRITICAL findings when feasible; mark `verified='live-poc'` if reproduced; otherwise `verified='source-only'`
 - Live-instance hygiene: **back up any config file before editing** (e.g., `cp .docker_compose/rules.json /tmp/rules.json.bak.G<n>`); restore at end *(Automated `source` mode: omit this bullet - no config edits/backup/restore; read-only source analysis only, see [source.md](source.md))*
 - Confidence floor: don't file anything below 8/10
@@ -106,10 +88,10 @@ Each subagent prompt (template from [../references/phase4-deep-audit.md](../refe
 
 ## Step 5 - Subagent failure handling
 
-If a spawn **errors**, returns "no response", or returns analysis without writing the SQL/artifact:
+If a spawn **errors**, returns "no response", or returns analysis without writing to `vh_findings`:
 
 1. **Diagnose the call and retry the spawn first.** Common causes: the wrong tool (`TaskCreate`/`TodoWrite` instead of the `Task`/`Agent` tool - those cannot spawn an agent), invalid params, or a read-only `Explore` used where a **writable** `general-purpose` `Task` was needed. Fix it and **re-spawn** that group's subagent. A tool error does not move the audit work into the orchestrator (see SKILL.md Essential Principle 11).
-2. Only if the **correct** spawn genuinely fails twice for that group: materialize that one group yourself by writing its `artifacts/G<n>-findings.md` file and running the SQL inserts directly. Do NOT lose findings - but inline is the fallback, not the first move.
+2. Only if the **correct** spawn genuinely fails twice for that group: materialize that one group yourself by running the `vh_findings` inserts directly (all columns). Do NOT lose findings - but inline is the fallback, not the first move.
 3. Update the resume note's "Quirks to remember" section so future runs avoid the same trap.
 
 ## Step 6 - Update group status
@@ -151,7 +133,7 @@ Present:
 ## Quality Checks
 
 - [ ] Every group has a `vh_findings` row count > 0 OR an explicit "no findings, all entry points reviewed" artifact
-- [ ] Every finding has a `artifacts/G<n>-findings.md` section with full root cause + PoC
+- [ ] Every finding is a complete `vh_findings` row (root cause, data flow, PoC, remediation)
 - [ ] No finding has confidence < 8
 - [ ] Patch-bypass intel from Step 2 has been probed (look for "probe these sites" items reflected in findings)
 - [ ] Resume note rewrites complete

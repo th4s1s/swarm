@@ -52,7 +52,7 @@ The skill supports six phases (invoke them individually after the prior phase co
 |---|---|---|---|---|
 | `recon` | [workflows/recon.md](workflows/recon.md) | Source detection, deep reconnaissance, **parallel feature mapping** into as many fine-grained groups/sub-features as needed for **full code coverage**, write resume note | Fresh start (or new target) | `vh_feature_groups`, `vh_attack_surface`, `vh_security_observations` populated; `files/G<n>-mapping.md` per group (every source file covered); resume note ready for compact |
 | `deploy` | [workflows/deploy.md](workflows/deploy.md) | Deploy live instance from source (Docker, build artifact, or local run); document in `/vibe/hack/audits/<project>/<project>-live-instance.md` | Recon done OR independent setup task | Live instance running; endpoints documented; live-instance note saved at the per-project audit home |
-| `audit` | [workflows/audit.md](workflows/audit.md) | Load prior CVEs/advisories (find patch-bypass surfaces), **parallel deep-audit subagents** per group, write resume note | Recon + deploy done | `vh_known_findings`, `vh_findings` populated; per-group `artifacts/G<n>-findings.md`; resume note updated |
+| `audit` | [workflows/audit.md](workflows/audit.md) | Load prior CVEs/advisories (find patch-bypass surfaces), **parallel deep-audit subagents** per group, write resume note | Recon + deploy done | `vh_known_findings`, `vh_findings` populated; resume note updated |
 | `fpcheck` | [workflows/fpcheck.md](workflows/fpcheck.md) | **Parallel FP-check subagents** apply Hard Exclusions / Precedent rules / Marginal Gain Test - **static review only**, no live testing; write resume note | Audit done | `vh_fp_verdicts` populated; per-batch `artifacts/phase5-batch<X>.md`; resume note updated |
 | `verify` | [workflows/verify.md](workflows/verify.md) | **Runs in a forked conversation**, requires finding-ID list. Per-finding live PoC, **adversarial review** (Step 2), then writes `artifacts/verify-<finding-id>.md` and **stops** - it does NOT write the report (the user runs the **report** phase in the same fork afterward). Refuses to run without IDs. | FP-check produced TPs; user opened a fork and passed `<ids>`. | `verify-<id>.md` per finding (CONFIRMED / REFUTED / INCONCLUSIVE). |
 | `report` | [workflows/report.md](workflows/report.md) | Write the vulnerability report(s) in the lean maintainer format (Summary / Root Cause / Steps + PoC / Impact). **Live: a distinct, user-invoked phase, run IN THE FORK** after verify has completed (`/vibehack:report <confirmed ids>`) → `artifacts/<id>-vuln-report.md` per finding with real PoC + captured output. **Source: consolidated, run in the orchestrator** → one `report.md`, Steps = reproduction guide (no run/output). No consolidation, no `disclosure-summary.md`. | Live: verify completed; user invokes report in the fork with the confirmed `<ids>`. Source: end of the `source` run. | Live: `artifacts/<id>-vuln-report.md` per confirmed finding + scripts in project-root `poc/`. Source: one consolidated `report.md`. |
@@ -161,7 +161,6 @@ The automated **`source`** run uses the same diagram **minus deploy and the veri
 │   ├── G<n>-mapping.md             # per-group feature mapping (recon)
 │   └── known-findings.md           # advisories + patch-bypass surface (audit)
 ├── artifacts/
-│   ├── G<n>-findings.md            # per-group deep-audit output (audit)
 │   ├── phase5-batch<X>-*.md        # per-batch FP-check verdicts (fpcheck)
 │   ├── verify-<finding-id>.md      # per-finding verification record (verify)
 │   └── <finding-id>-vuln-report.md # per-finding vuln report - LIVE (report, in the fork)
@@ -256,7 +255,7 @@ To begin, route to the appropriate workflow:
 - [ ] All feature groups have mappings in SQL + `files/G<n>-mapping.md`
 - [ ] **Full code coverage**: every source file is assigned to a group and mapped (groups are fine-grained, each decomposed into many sub-features - no file or entry point left unmapped)
 - [ ] Live instance is running and documented in the live-instance note
-- [ ] Every group was deep-audited; findings in `vh_findings` + `artifacts/G<n>-findings.md`
+- [ ] Every group was deep-audited; findings in `vh_findings`
 - [ ] Every finding has a FP-check verdict in `vh_fp_verdicts`
 - [ ] Every TRUE_POSITIVE has a `verify-<id>.md` artifact OR a documented "infra-blocked, source-only" reason
 - [ ] Live: every confirmed vuln has its own lean `<id>-vuln-report.md` (real PoC + captured output; scripts in `poc/`). Source-only: one consolidated `report.md` with source-level reproduction guides

@@ -114,16 +114,7 @@ When BOTH sources are available, use this division of labor:
 
 ## SQL Schema
 
-```sql
-CREATE TABLE IF NOT EXISTS vh_sources (
-    id TEXT PRIMARY KEY,
-    type TEXT NOT NULL,          -- 'source', 'autorev', 'both'
-    source_path TEXT,            -- absolute path to source root
-    source_language TEXT,        -- primary language
-    source_file_count INTEGER,
-    autorev_binary TEXT,         -- binary input file path
-    autorev_db_path TEXT,        -- loaded IDA database (.i64) in the autorev session
-    autorev_arch TEXT,           -- x86, x64, ARM, etc. (from get_binary_overview)
-    confirmed_at TEXT DEFAULT (datetime('now'))
-);
-```
+`vh_sources` is created at workspace init ([../schema.sql](../schema.sql)) - it already exists, do
+**not** create it. Columns to populate: `id, type ('source'|'autorev'|'both'), source_path,
+source_language, source_file_count, autorev_binary, autorev_db_path, autorev_arch` (`confirmed_at`
+defaults).

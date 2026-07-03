@@ -27,7 +27,7 @@ Then do these reads first (parallel):
 
 1. `<AUDIT_DIR>/<project>-audit-resume.md` - current pipeline state, what's TP, fork inventory, live-instance pointer (the audit pointer in your memory references this path if you need to relocate it)
 2. `/vibe/hack/audits/<project>/<project>-live-instance.md` - **deployment mode, capabilities, base URLs, liveness command**, bind-mounted config, hand-edit log, **credentials inventory, tenant/scope boundaries, off-limits resources, rate-limit caps, seed test data** (external-provided)
-3. Each in-scope finding's section in `<AUDIT_DIR>/artifacts/G<n>-findings.md`
+3. Each in-scope finding's row in `vh_findings` (`SELECT * FROM vh_findings WHERE id = '<finding-id>'`) - root cause, data flow, location, PoC, remediation
 4. The corresponding FP-check verdict reason from `vh_fp_verdicts` (verifies the FP-check was satisfied this is a real bug, so any "can't reproduce" outcome is suspicious)
 
 Confirm the live instance is reachable using the **liveness command from the live-instance note** (do not invent one - `/health` may 404 or be sensitive, and `127.0.0.1` may be the wrong host):
@@ -139,7 +139,7 @@ Save to **`<AUDIT_DIR>/artifacts/verify-<finding-id>.md`** with this structure:
 # Verify <finding-id> - <short title>
 
 **Audit:** `audit-<timestamp>`  · **Fork:** <letter>  · **Date:** <date>
-**Finding artifact:** [G<n>-findings.md#<finding-id>](G<n>-findings.md)
+**Finding:** `<finding-id>` in `vh_findings` (audit DB)
 **FP-check verdict:** TRUE_POSITIVE - <reason>
 **Upstream status:** <at latest commit `<sha>` | patched upstream at `<sha>`[ , CVE-…] | still present at latest commit `<sha>` | check skipped: offline/no remote>  (filled in Step 2c)
 

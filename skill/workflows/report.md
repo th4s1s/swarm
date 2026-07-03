@@ -68,7 +68,7 @@ The `source` run has no live instance and no forks. Write ONE `<AUDIT_DIR>/repor
    ```sql
    SELECT finding_id, final_severity FROM vh_fp_verdicts WHERE verdict = 'TRUE_POSITIVE';
    ```
-   Read each finding's detail from `artifacts/G<n>-findings.md` + `vh_findings`.
+   Read each finding's full detail from `vh_findings` (`SELECT * FROM vh_findings WHERE id IN (...)`).
 2. Write `report.md`: a short header (target, version/commit, audit date), then **one section per finding** ordered by severity, each using the seven headings above (`#`/`##` per finding, `##`/`###` for its sub-sections - keep it consistent and skimmable). Include the CWE(s) + CVSS 3.1 vector in each finding's Vulnerability Detail (a static classification; no live instance needed).
 3. **Steps to reproduce is a reproduction GUIDE only** - the concrete steps, inputs, and conditions an attacker or maintainer would use to trigger the bug, derived from source, written step by step (prose + the example command(s) per step, not one script). There is **no live instance**: do NOT run a PoC and do NOT paste captured output. Label the section as a source-level guide (not live-verified).
 4. State prominently near the top that all findings are **static (source-level) true-positives that survived false-positive review but were NOT live-verified**; running the interactive verify phase against a live instance is recommended before any external disclosure.

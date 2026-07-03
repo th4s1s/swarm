@@ -10,23 +10,19 @@
 ## Step 1 - Create audit workspace
 
 ```bash
-PROJECT="${VIBEHACK_PROJECT:-$(basename "$PWD")}"            # project root basename (cwd), or app-provided
-AUDIT_HOME="/vibe/hack/audits/${PROJECT}"                    # per-project audit home (holds the live-instance note; persists across re-audits)
-AUDIT_DIR="${VIBEHACK_AUDIT_DIR:-${AUDIT_HOME}/audit-$(date -u +%Y%m%d-%H%M%S)}"   # THIS run's dir: audit.db, artifacts, AND the resume note - all OUTSIDE the project tree
-mkdir -p "${AUDIT_DIR}/files" "${AUDIT_DIR}/artifacts" "${AUDIT_DIR}/archived-poc"   # idempotent
-sqlite3 "${AUDIT_DIR}/audit.db" "SELECT 1;"  # create empty DB (no-op if it already exists)
+PROJECT="$VIBEHACK_PROJECT"                                 # provided by the app (or skill/dev-run.sh)
+AUDIT_HOME="/vibe/hack/audits/${PROJECT}"                   # per-project audit home (holds the live-instance note; persists across re-audits)
+AUDIT_DIR="$VIBEHACK_AUDIT_DIR"                             # THIS run's dir: audit.db (schema already seeded), artifacts, AND the resume note - all OUTSIDE the project tree
 ```
 
-> **App integration**: if `VIBEHACK_AUDIT_DIR` is set, the wrapping app already created that
-> workspace (and an empty `audit.db`) for you - use it **as-is**; do **not** mint a new
-> `audit-<timestamp>` dir. The commands above are idempotent so they are safe to re-run.
-> **Do not orient or inspect**: do not list `/vibe/hack/audits/`, do not `find`/`ls`/`sqlite3`-probe
-> the dir, and do not deliberate "resume vs fresh" - an empty `audit.db`/`files/`/`artifacts/` is
-> expected for a pre-created workspace. The app chose this phase; set `AUDIT_DIR="$VIBEHACK_AUDIT_DIR"`
-> and proceed straight to Step 2.
-> When `VIBEHACK_APP=1`, also follow [../references/app-integration.md](../references/app-integration.md)
-> (write `<AUDIT_DIR>/.app/state.json` at each phase boundary). Both vars are unset in standalone CLI
-> use, so the original behavior (fresh timestamped dir) is unchanged.
+> **Workspace + schema are app-provided.** The wrapping app (or `skill/dev-run.sh`) already created
+> this workspace - the `files/`/`artifacts/`/`archived-poc/` dirs and an `audit.db` **with the full
+> schema already seeded** ([../schema.sql](../schema.sql)). Use it **as-is**: do **not** mint a new
+> `audit-<timestamp>` dir, do **not** create any tables yourself, and do **not** orient/inspect - don't
+> list `/vibe/hack/audits/`, don't `find`/`ls`/`sqlite3`-probe the dir, and don't deliberate "resume
+> vs fresh". An empty-but-schema'd `audit.db` is expected. Set the vars above and proceed straight to
+> Step 2. Also follow [../references/app-integration.md](../references/app-integration.md) (write
+> `<AUDIT_DIR>/.app/state.json` at each phase boundary).
 
 Notes live alongside the artifacts on disk, not in your memory:
 - **Resume note** (per run): `${AUDIT_DIR}/${PROJECT}-audit-resume.md`
