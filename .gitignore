@@ -144,3 +144,6 @@ vite.config.ts.timestamp-*
 
 # Serena MCP project cache
 .serena/
+
+# Self-contained scanner toolchain (installed by scripts/install-tools.sh; never committed)
+tools/

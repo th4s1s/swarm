@@ -87,3 +87,23 @@ CREATE TABLE IF NOT EXISTS vh_fp_verdicts (
     merged_into TEXT,             -- canonical finding_id when DUPLICATE
     reviewed_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Deterministic scanner leads (written app-side by the baseline scan; read by recon).
+-- These are LEADS, not findings: the skill triages/enriches them; only later phases may promote one
+-- into vh_findings (via promoted_finding_id). fingerprint is UNIQUE so re-runs dedupe (INSERT OR IGNORE).
+CREATE TABLE IF NOT EXISTS vh_scanner_hits (
+    id TEXT PRIMARY KEY,
+    tool TEXT NOT NULL,                  -- semgrep | gitleaks | codeql | joern | osv-scanner
+    rule_id TEXT,
+    severity TEXT,
+    file TEXT,                           -- project-relative path
+    line INTEGER,
+    end_line INTEGER,
+    message TEXT,
+    group_id TEXT,                       -- NULL until recon Step 4.5 buckets it to a feature group
+    status TEXT DEFAULT 'new',           -- new | triaged | dismissed | promoted
+    promoted_finding_id TEXT,            -- vh_findings.id if this lead became a real finding
+    fingerprint TEXT UNIQUE,             -- sha1(tool|rule|file|line|message) - dedupe across re-runs
+    raw TEXT,                            -- the raw SARIF result object
+    created_at TEXT DEFAULT (datetime('now'))
+);

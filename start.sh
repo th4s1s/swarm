@@ -23,6 +23,10 @@ if [ ! -d "$FRONTEND/node_modules" ]; then
   echo "  - installing frontend dependencies…"
   (cd "$FRONTEND" && npm install)
 fi
+if [ ! -d "$ROOT/tools" ]; then
+  echo "  - installing scanner toolchain into ./tools…"
+  bash "$ROOT/scripts/install-tools.sh"
+fi
 
 # Kill the whole process group on exit so Ctrl-C stops both servers.
 # Disarm the traps first so the handler runs exactly once (kill 0 signals our own

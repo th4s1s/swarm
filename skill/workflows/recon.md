@@ -68,13 +68,35 @@ Present the groups and ask the user to confirm (see SKILL.md → *Tools & subage
 
 Insert approved groups into `vh_feature_groups` (status='pending').
 
+## Step 4.5 - Bucket scanner leads to groups
+
+Before recon started, the app ran a deterministic baseline scan (semgrep + gitleaks) over the source and
+recorded **leads** in `vh_scanner_hits` (`status='new'`, `group_id` NULL). Now that the file→group map
+exists, assign each lead to its group so the mapping subagents can pick it up - one `UPDATE` per group,
+listing that group's files:
+
+```bash
+sqlite3 "${AUDIT_DIR}/audit.db" "UPDATE vh_scanner_hits SET group_id='G<n>'
+  WHERE group_id IS NULL AND file IN ('path/one.ext', 'path/two.ext', ...);"
+```
+
+Leads whose file maps to no group stay NULL (usually generated/out-of-scope files - a quick coverage
+signal). **Leads are advisory hints, never findings**; they enrich the mapping in Step 5, they never
+narrow it. (No leads is fine - the scan is best-effort and may be empty or skipped.)
+
 ## Step 5 - Parallel feature mapping subagents
 
 **CRITICAL - use a writable subagent**: the mapping subagents must run with a **writable** `general-purpose` `Task` so their SQL inserts and artifact files persist; a read-only `Explore` agent silently produces no SQL inserts or artifact files. (See [../references/lessons-learned.md](../references/lessons-learned.md) item #1.)
 
-**Spawn with the `Task`/`Agent` tool** (`subagent_type: general-purpose`, with a `prompt`) - NOT `TaskCreate`/`TodoWrite` (those manage your own todo list and cannot spawn an agent). If a spawn call errors (wrong tool, bad params), **fix the call and retry it**; a spawn error is never a reason to map the groups yourself in the orchestrator (see SKILL.md Essential Principle 11).
+**Spawn with the `Task`/`Agent` tool** (`subagent_type: general-purpose`, **`model: sonnet`**, with a `prompt`) - NOT `TaskCreate`/`TodoWrite` (those manage your own todo list and cannot spawn an agent). If a spawn call errors (wrong tool, bad params), **fix the call and retry it**; a spawn error is never a reason to map the groups yourself in the orchestrator (see SKILL.md Essential Principle 11).
 
 Spawn ONE subagent per feature group, ALL in parallel (one `Task` call per group in the same response).
+
+**Model - use `sonnet` for mapping subagents (and their recursive helpers).** Feature-mapping is
+structural enumeration, not the adversarial hunt, so it does not need the strongest model - and the
+deterministic baseline scan (Step 4.5) backstops coverage. Keep **yourself** (the recon orchestrator) on
+the session's default model, and the later deep-audit hunters stay on the strongest model; only these
+mapping subagents drop to `sonnet`.
 
 **Recursive, self-scaling mapping (go as deep as the code demands):** a group may still be too large for one subagent to read every file. Instruct each mapping subagent that **if its assigned scope is too large to map exhaustively itself, it must split the scope and spawn its own writable `general-purpose` sub-subagents** (one per sub-scope, in parallel) - and the **same rule applies recursively** to those helpers, deepening until each leaf agent's slice is small enough to read in full. In Claude Code a subagent can spawn subagents, so this nests arbitrarily. Coordination so depth never clobbers files or races SQLite:
 - A spawned **helper returns** its mapping (markdown sections + the attack-surface/observation rows) to its caller; it does **not** write the group file or SQL.
@@ -88,6 +110,7 @@ Each subagent prompt (template from [../references/phase2-feature-mapping.md](..
 - Group ID + name + scope (key directories **and the explicit list of files assigned to this group** from the Step 4 file→group map)
 - Access instructions: **source** → file paths + grep/glob; **binary** → autorev tools (`load_database` first if the agent has its own session, then `analyze_function` / `get_disassembly` / `get_cfg` / `list_functions` / `search_functions` / `find_symbol` / `list_imports` / `find_import_usages` / `find_string` / `list_strings` / `find_xrefs_to` / `get_xrefs_from` / `get_callees` / `get_callers`)
 - **Max-coverage mandate**: read **every file in scope** (none skipped as "boring") and decompose the group into **as many granular sub-features as exist** - one per route/handler/command/parser/state-machine/helper that touches input. Map every entry point and every function that handles external/cross-boundary data.
+- **Scanner leads are supplementary hints, not your scope.** Do the full max-coverage mapping above **first** - read every file and enumerate all sub-features independent of any leads (leads never narrow or replace it). THEN also review your group's leads (`SELECT tool, rule_id, severity, file, line, message FROM vh_scanner_hits WHERE group_id='G<n>'`): for each that maps to real code, fold it into your sub-features + `vh_security_observations`, then `UPDATE vh_scanner_hits SET status='triaged' WHERE group_id='G<n>'`. A lead is never a confirmed finding and never a substitute for full coverage.
 - **Recursive-decomposition instruction** (template's *Scale yourself* section): split oversized scope and spawn helper sub-subagents that **return** their mapping; only the group owner writes the file + SQL.
 - Instruction to write **two outputs**:
   1. Detailed mapping → `<AUDIT_DIR>/files/G<n>-mapping.md` - including a **Coverage** line listing the in-scope files read vs. any not yet mapped (target: none unmapped)

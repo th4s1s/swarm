@@ -11,6 +11,7 @@ import { getSessionById, updateSession } from '../sessions/repo.js';
 import { ensureWorkspace, parseConfig } from '../sessions/service.js';
 import { composePrompt } from './prompt.js';
 import { hub } from './hub.js';
+import { runBaselineScan } from './scan.js';
 import {
   countRunningForSession,
   countRunningGlobal,
@@ -159,6 +160,30 @@ class RunnerManager {
     updateSession(session.id, { status: 'running' });
     hub.broadcast(run.session_id, { kind: 'run', runId: run.id, status: 'running', phase: run.phase, mode: run.mode });
     hub.broadcast(run.session_id, { kind: 'session', status: 'running' });
+
+    // Deterministic baseline scan (semgrep + gitleaks) once per session, before recon-bearing runs.
+    // Best-effort: it never blocks the run on tool failure; hits land in vh_scanner_hits for recon.
+    if (run.phase === 'recon' || run.mode === 'full' || run.mode === 'source') {
+      const emitScan = (text: string): void => {
+        const ev = { type: '_scan', text };
+        log.write(JSON.stringify(ev) + '\n');
+        hub.broadcast(run.session_id, { kind: 'event', runId: run.id, event: ev });
+      };
+      emitScan('Running baseline scanners (semgrep, gitleaks)…');
+      try {
+        const res = await runBaselineScan(project.name, session.session_name, (m) =>
+          this.log.warn({ runId: run.id }, m),
+        );
+        emitScan(
+          res
+            ? `Baseline scan done: ${res.hits} lead(s) from ${res.tools.join(', ') || 'no tools'}`
+            : 'Baseline scan: already done for this session',
+        );
+      } catch (err) {
+        this.log.warn({ err, runId: run.id }, 'baseline scan failed (continuing)');
+        emitScan('Baseline scan failed (continuing without leads)');
+      }
+    }
 
     // Extended thinking is controlled by MAX_THINKING_TOKENS: a positive budget
     // enables it, 0 disables it; omit entirely to use the model/effort default.

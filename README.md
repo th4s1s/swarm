@@ -44,6 +44,9 @@ Browser ──► frontend (React + Vite + Tailwind, neon-green UI)   :6767
 - **Claude Code CLI** installed and logged in (`~/.claude/.credentials.json` present) - used for audit
   runs, quota, and MCP. Install it from https://claude.com/claude-code, then run `claude` once to log in.
 - **git**, an `unzip`-capable environment, and **Docker** (for live deploys + the Resources panel).
+- **Python 3** and network access (for the self-contained scanner toolchain: `scripts/install-tools.sh`
+  builds a semgrep venv and downloads scanner binaries into `tools/`, which is gitignored and never put
+  on your PATH).
 - The audit roots exist (or point `PROJECTS_DIR` / `AUDITS_DIR` elsewhere): `/vibe/hack/projects`,
   `/vibe/hack/audits`.
 
@@ -56,10 +59,13 @@ From a fresh clone of this repo:
 bash skill/install.sh        # symlinks ~/.claude/skills/vibehack + the /vibehack:* commands -> skill/
 #    Then reload Claude Code (start a new session, or run /skills) so it picks the skill up.
 
-# 2) Make sure the audit roots exist (or set PROJECTS_DIR / AUDITS_DIR).
+# 2) Install the self-contained scanner toolchain into ./tools (one time; ./start.sh also does this).
+bash scripts/install-tools.sh   # semgrep venv + gitleaks binary under tools/ (gitignored, off-PATH)
+
+# 3) Make sure the audit roots exist (or set PROJECTS_DIR / AUDITS_DIR).
 mkdir -p /vibe/hack/projects /vibe/hack/audits
 
-# 3) Start the app (installs npm deps on first run; Ctrl-C stops both servers).
+# 4) Start the app (installs npm deps on first run; Ctrl-C stops both servers).
 ./start.sh                   # backend :8787 + frontend :6767
 ```
 
