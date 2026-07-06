@@ -6,6 +6,7 @@ import {
   ChevronRight,
   FileEdit,
   Network,
+  ScanLine,
   Terminal,
   Workflow as WorkflowIcon,
   XCircle,
@@ -140,6 +141,13 @@ function BlockRow({ b }: { b: Block }) {
         <div className={`flex items-start gap-1.5 text-xs ${b.tone === 'error' ? 'text-danger' : 'text-muted/70'}`}>
           {b.tone === 'error' ? <AlertTriangle className="mt-0.5 size-3 shrink-0" /> : null}
           <span className="whitespace-pre-wrap break-words">{b.text}</span>
+        </div>
+      );
+    case 'scan':
+      return (
+        <div className="flex items-center gap-2 text-xs text-sev-info">
+          <ScanLine className="size-3.5 shrink-0" />
+          <span className="break-words">{b.text}</span>
         </div>
       );
   }

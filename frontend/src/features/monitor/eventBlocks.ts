@@ -10,7 +10,8 @@ export type Block =
   | { id: number; kind: 'file_edit'; path: string; summary: string }
   | { id: number; kind: 'tool_result'; text: string; isError: boolean }
   | { id: number; kind: 'result'; cost: number | null; durationMs: number | null; tokens: number | null; numTurns: number | null; isError: boolean }
-  | { id: number; kind: 'note'; text: string; tone: 'muted' | 'error' };
+  | { id: number; kind: 'note'; text: string; tone: 'muted' | 'error' }
+  | { id: number; kind: 'scan'; text: string };
 
 type DistributiveOmit<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;
 type NewBlock = DistributiveOmit<Block, 'id'>;
@@ -59,6 +60,10 @@ export function buildBlocks(events: StreamEvent[]): Block[] {
       continue;
     }
     if (t === 'stream_event' || t === 'rate_limit_event') continue;
+    if (t === '_scan') {
+      push({ kind: 'scan', text: String(e.text ?? '').trim() });
+      continue;
+    }
     if (t === '_stderr') {
       push({ kind: 'note', tone: 'muted', text: String(e.text ?? '').trim() });
       continue;
