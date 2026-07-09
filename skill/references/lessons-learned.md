@@ -108,13 +108,14 @@ This file records pitfalls observed in actual vibehack runs. Read it **before** 
 
 ---
 
-## 9. Verify forks attempting to upload edits back to orchestrator state
+## 9. Verify forks write ONLY their own finding's rows (scoped + serial)
 
-**Symptom:** A verify fork tries to `UPDATE vh_findings SET verified='live-poc'` or modify `vh_fp_verdicts`. This causes race conditions when multiple forks run in parallel.
+**Context:** each verify fork **must** record its finding's outcome in the DB - `verdict` + `final_severity` in `vh_fp_verdicts`, and `vh_findings.verified` for a live PoC (verify.md Step 3). This is required: the web UI reads the DB, not the artifacts, so a fork that only wrote a `verify-<id>.md` artifact would leave the UI stale.
 
-**Prevention:**
-- Verify forks write **artifact files only** (`verify-<id>.md`). The orchestrator reads those in Phase 6.
-- The verify workflow doc (verify.md Step 3) says this explicitly.
+**Rule:**
+- A fork touches **only the rows for its own finding id** - never another finding's row, and never a bulk/unscoped `UPDATE`.
+- That, plus verify running **serially** (one finding at a time - shared live instance), means there is no cross-fork race. (An earlier design that ran forks in parallel with broad SQL writes did race; the fix was **scoped, serial writes**, not "no writes".)
+- Still write the `verify-<id>.md` artifact too - it is the evidence/reasoning record alongside the DB row.
 
 ---
 
