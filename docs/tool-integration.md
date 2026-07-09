@@ -1,7 +1,7 @@
 # SWARM - Deterministic Tool Integration: Design & Roadmap
 
-*Status: design + roadmap. No pipeline code implements this yet; each slice in §9 gets its own plan,
-authored from this document. Sibling to [PROPOSAL.md](../PROPOSAL.md) (the token-reduction master plan).*
+*Status: design + roadmap. Each slice in §9 gets its own plan, authored from this document. Sibling to
+[token-optimization.md](token-optimization.md) (the token-reduction roadmap).*
 
 ## 1. Context & goals
 
