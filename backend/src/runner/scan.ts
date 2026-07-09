@@ -18,8 +18,14 @@ const TOOLS_DIR = resolve(BACKEND_ROOT, '..', 'tools');
 const SEMGREP = join(TOOLS_DIR, 'semgrep', 'venv', 'bin', 'semgrep');
 const GITLEAKS = join(TOOLS_DIR, 'bin', 'gitleaks');
 
-/** High-signal community security pack. Tunable; kept broad since hits are advisory leads. */
-const SEMGREP_RULESET = 'p/security-audit';
+/**
+ * Community security rulepacks (registry ids; cached after first fetch). Broad on purpose - hits are
+ * advisory leads to seed the mapping, and the sonnet mapping does full coverage regardless. Security-
+ * focused (not p/default) to stay relevant. `--config auto` is deliberately NOT used: it requires
+ * telemetry (`--metrics` on), which we refuse on private code. Later slices append the local
+ * finding-derived rule library here (see docs/tool-integration.md).
+ */
+const SEMGREP_RULESETS = ['p/security-audit', 'p/owasp-top-ten', 'p/cwe-top-25'];
 const SCAN_TIMEOUT_MS = 300_000;
 
 export interface ScanResult {
@@ -145,7 +151,10 @@ export async function runBaselineScan(projectName: string, sessionName: string, 
     const out = join(scanDir, 'semgrep.sarif');
     await runScanner(
       SEMGREP,
-      ['--config', SEMGREP_RULESET, '--sarif', '-o', out, '--metrics=off', '--timeout', '60', '--max-target-bytes', '1000000', '--jobs', '4', '.'],
+      [
+        ...SEMGREP_RULESETS.flatMap((c) => ['--config', c]),
+        '--sarif', '-o', out, '--metrics=off', '--timeout', '60', '--max-target-bytes', '1000000', '--jobs', '4', '.',
+      ],
       proj,
       log,
     );
