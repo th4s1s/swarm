@@ -114,7 +114,7 @@ This file records pitfalls observed in actual vibehack runs. Read it **before** 
 
 **Prevention:**
 - Verify forks write **artifact files only** (`verify-<id>.md`). The orchestrator reads those in Phase 6.
-- The verify workflow doc says this explicitly. Include the rule in every verify-fork prompt.
+- The verify workflow doc (verify.md Step 3) says this explicitly.
 
 ---
 
@@ -215,22 +215,6 @@ This file records pitfalls observed in actual vibehack runs. Read it **before** 
 - For every candidate, first answer: *what new, durable capability does the attacker gain that they didn't already have?* No marginal gain → not a vuln (Marginal Gain Test, HE-17).
 - A node/app **dropping or banning a misbehaving peer is correct behavior**, not a DoS. Transient, self-healing, or requires-the-victim-to-attack-itself → LOW / Informational at most.
 - **Lead with the honest verdict and hold it under pushback.** If pressed to inflate, re-run the attacker-advantage test and report what's true. An overstated bug-bounty submission is often disqualifying - a far worse outcome than an honest "Informational."
-
----
-
-## 17. Keep the orchestrator at the project root - a drifted cwd hides your verify forks
-
-**Observed in:** A real audit (Windows). Afterward the Claude resume picker showed only the root session under the project; the four verify forks were missing. The root session's recorded cwd was the project root, but each fork's cwd was `…\reports\audit-<timestamp>\`.
-
-**Symptom:** Verify forks/branches don't appear under the project in the resume picker (though `claude --resume <id>` still works).
-
-**Root cause:** During the run the orchestrator's working directory drifted out of the project root (e.g. a convenience `cd` into the audit dir or another subdir to shorten commands). A session's project folder under `~/.claude/projects/` is keyed to its **working directory at the moment the session/fork is created** and locked thereafter; the resume picker reads only the one folder matching your launch directory (no cross-folder search). So forks created while the cwd sat in the subdir are filed under a *different* project key than the root session and never show up in the root project's picker - and a post-fork `cd` can't move them, because the key is already locked. (`claude --resume <id>` still finds them by id, bypassing the folder match.)
-
-**Prevention:**
-- **Never `cd` into the audit dir (or any subdir).** Keep the orchestrator at the **project root** for the entire audit; reference the absolute audit dir `/vibe/hack/audits/<project>/audit-<ts>/` and `audit.db` by path.
-- **Open every verify fork from the project root.** If the cwd has drifted, `cd` back to the project root *before* forking - a post-fork `cd` does not move the fork back into the project's picker group.
-- The verify-fork prompt and `verify.md` Step 0 both tell each fork to **operate from the project root** (its artifact paths are relative to it); prefer the **absolute** audit-dir path in fork instructions when in doubt.
-- Recovery for already-orphaned forks: their `.jsonl` files live under `~/.claude/projects/<encoded-subdir-cwd>/` - resume by id with `claude --resume <id>`.
 
 ---
 

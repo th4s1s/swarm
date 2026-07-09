@@ -31,9 +31,8 @@ are standalone-CLI behaviors; skip them entirely when `VIBEHACK_AUDIT_DIR` is se
 The **app** controls phase pacing: each phase is a separate `claude` invocation that the app starts
 (the user clicks a phase/mode button). So, in app mode:
 
-- Treat per-phase **user gates** ("USER GATE", "ask the user to approve the next phase") as no-ops -
-  finish the phase, write artifacts + resume note + `.app/state.json`, then stop. The app starts the
-  next phase itself.
+- Each phase **finishes its work, writes artifacts + resume note + `.app/state.json`, then stops** -
+  there are no in-skill gates; the app starts the next phase itself.
 - **Auto-resolve detection prompts** (source-vs-autorev, feature-group split) with the best default
   and continue, exactly like the `source` precedence rules - do not block waiting for input.
 - Verify/report **forks are created by the app** (`claude --resume <parent> --fork-session`), one per

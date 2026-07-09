@@ -166,7 +166,7 @@ After all subagents return:
 
 ## Quality Checks
 
-Before presenting mappings to the user, verify:
+Before finalizing mappings, verify:
 
 - [ ] **Every source file in the codebase is mapped** under some group (no unmapped files - cross-check against the full file inventory)
 - [ ] Each group is decomposed into **as many granular sub-features as exist** (not lumped into one or two broad "features")

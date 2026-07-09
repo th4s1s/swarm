@@ -96,10 +96,7 @@ Total: <N> observations.
 8. Record each finding's verify outcome in the DB (verify.md Step 3): write `verdict` + `final_severity` into `vh_fp_verdicts` (the table the web UI reads) and set `vh_findings.verified` for live PoCs - touch only the rows you verified
 9. Return summary table
 
-**Fork prompt template (paste into each forked conversation):**
-```
-You are a forked conversation from <project> audit `audit-<timestamp>`. Workspace: <path>. **Work from the project root `<path>` so your fork is filed under this project in the resume picker; the audit dir is the absolute path `/vibe/hack/audits/<project>/audit-<ts>/` - write artifacts there by absolute path, never `cd` into it.** Read `/vibe/hack/audits/<project>/audit-<ts>/<project>-audit-resume.md` (Phase 5.5 section) AND `/vibe/hack/audits/<project>/<project>-live-instance.md` first. Your scope: live-verify finding <ID> (one finding per fork) as Fork <X>. If you open several forks, run them ONE AT A TIME - they share the live instance. Run this skill's verify phase for that finding (`/vibehack:verify <ID>`); if you need the raw steps, read `<SKILL_DIR>/workflows/verify.md` (the orchestrator substitutes <SKILL_DIR> with its install root - e.g. ~/.claude/skills/vibehack). Write the artifact at `/vibe/hack/audits/<project>/audit-<ts>/artifacts/verify-<ID>.md`; if it is CONFIRMED, adversarially review it with fresh read-only subagents (verify.md Step 2) and record the outcome in the artifact. Return the result when done.
-```
+The app opens one verify fork per finding (serial - they share the live instance); each fork runs the verify phase for its assigned finding.
 
 ## Phase 6 (report)
 - **Live:** each verify fork wrote its finding's `/vibe/hack/audits/<project>/audit-<ts>/artifacts/<id>-vuln-report.md` (lean format; real PoC + captured output; runnable scripts in the project-root `poc/`) per `references/phase6-report.md`. There is **no** orchestrator consolidation and **no** `disclosure-summary.md`.

@@ -2,11 +2,11 @@
 
 **Purpose**: Write the vulnerability report(s) in the lean, maintainer-facing format (template: [../references/phase6-report.md](../references/phase6-report.md)). There are **two modes**, decided by how the audit ran:
 
-- **Live, per-finding, in the fork** (full pipeline). After verify completes and confirms findings, when the **user** invokes the report phase in the fork, the **fork itself** writes one report per confirmed finding at `<AUDIT_DIR>/artifacts/<FINDING-ID>-vuln-report.md`, with the real PoC and captured output. There is no orchestrator consolidation.
+- **Live, per-finding, in the fork** (full pipeline). After verify completes and confirms findings, when the report phase is invoked in the fork, the **fork itself** writes one report per confirmed finding at `<AUDIT_DIR>/artifacts/<FINDING-ID>-vuln-report.md`, with the real PoC and captured output. There is no orchestrator consolidation.
 - **Source-only, consolidated, in the orchestrator** (the `source` run: no live instance, no forks). The **orchestrator** writes ONE `<AUDIT_DIR>/report.md` covering all true positives, where *Steps to reproduce* is a reproduction guide (no PoC executed, no captured output).
 
 **Entry**:
-- Live: inside the verify fork, when the user invokes the report phase after verify has completed, for each finding the fork confirmed as real. Only real / worth-reporting findings reach this phase; REFUTED or not-worth-reporting findings stop at verify and never get a report.
+- Live: inside the verify fork, when the report phase is invoked after verify has completed, for each finding the fork confirmed as real. Only real / worth-reporting findings reach this phase; REFUTED or not-worth-reporting findings stop at verify and never get a report.
 - Source-only: the orchestrator, at the end of the `source` run (see [source.md](source.md)).
 
 **Exit**:

@@ -3,7 +3,7 @@
 **Purpose**: Eliminate false positives via **static review only** - re-read every cited source file, apply 18 Hard Exclusions + 10 Precedent rules + Marginal Gain Test. No live testing in this phase (that's `verify`).
 
 **Entry**: Audit done, `vh_findings` populated.
-**Exit**: Every finding has a verdict in `vh_fp_verdicts`, per-batch artifacts written, resume note updated, user gate before verification forks.
+**Exit**: Every finding has a verdict in `vh_fp_verdicts`, per-batch artifacts written, resume note updated (with the fork inventory).
 
 ---
 
@@ -85,25 +85,17 @@ Rewrite the resume note (and the audit pointer in your memory, phase = fpcheck) 
 
 - Phase status: recon/deploy/audit/fpcheck DONE; **verify IN PROGRESS via FORKED conversations**
 - Final verdict tally (TP / FP / DUP counts)
-- **List which findings already have live-PoC** (from `vh_findings.verified='live-poc'` carried over from audit phase, plus any new live-PoC captured by FP-check artifacts) - these do NOT need a verify fork *(Automated `source` mode: there is no live-PoC and no verify fork - record all TPs as source-only and skip the fork inventory / fork prompt; see [source.md](source.md))*
+- **List which findings already have live-PoC** (from `vh_findings.verified='live-poc'` carried over from audit phase, plus any new live-PoC captured by FP-check artifacts) - these do NOT need a verify fork *(Automated `source` mode: no live-PoC and no verify - record all TPs as source-only; see [source.md](source.md))*
 - **Fork inventory** for the remaining TPs needing live verification: **one fork per finding** (each verify fork/agent covers exactly one finding)
-- The **fork prompt template** ready to paste (see [verify.md](verify.md))
 
-## Step 8 - USER GATE
+## Step 8 - Hand off to verify
 
-> _Automated `source` mode supersedes this gate - skip the verify forks and proceed straight to report without pausing (see [source.md](source.md))._
-
-Present:
-
-> FP-check complete. N verdicts: X TP / Y FP / Z DUP. K TPs already have live PoC; M still need live verification.
->
-> Next: open one forked conversation **per finding** that needs live verification, **from the project root**, and run them **one at a time** (serial - they share the live instance), using the fork prompt in the resume note. Each fork verifies a single finding, writes `artifacts/verify-<id>.md`, and - if confirmed as a real vuln - writes its own `artifacts/<id>-vuln-report.md` (the report phase runs in the fork; no orchestrator consolidation). (Claude Code + ultracode: drive this as a serial workflow loop instead - see [../references/workflow-orchestration.md](../references/workflow-orchestration.md).)
->
-> **Before forking, confirm your working directory is the project root** - `/branch` and forks inherit the current cwd, and Claude's resume picker groups sessions by it. If the cwd has drifted into the audit dir (`<AUDIT_DIR>/`) or any subdir, `cd` back to the project root first, or the forks won't show under this project in the resume picker (lessons-learned #17).
->
-> When all forks finish: come back here and say **go report** for Phase 6.
->
-> **Before opening verify forks, run a manual compact here** (`/compact`). The orchestrator only needs the FP verdicts + resume note while the verify forks run - everything else (per-finding source dives, dedup reasoning) is already on disk. Each verify fork (which verifies, reviews, and writes its own `<id>-vuln-report.md`) starts in its own clean context anyway, so this compact is purely for the orchestrator.
+Verify then runs **one fork per finding** that needs live verification, **serial** (forks share the live
+instance). Each fork verifies its finding, writes `artifacts/verify-<id>.md`, and - if confirmed - writes
+its own `artifacts/<id>-vuln-report.md` (the report phase runs inside the fork; no orchestrator
+consolidation). The app opens these forks per-finding; under ultracode it is a serial workflow loop (see
+[../references/workflow-orchestration.md](../references/workflow-orchestration.md)). `source` mode skips
+verify entirely (see [source.md](source.md)).
 
 ## Quality Checks
 
@@ -112,4 +104,4 @@ Present:
 - [ ] Every DUPLICATE has a valid `merged_into` finding_id
 - [ ] Every FALSE_POSITIVE cites a specific HE/PR/CV rule
 - [ ] Per-batch artifacts exist for all batches A..N
-- [ ] Resume note includes the fork prompt template + fork inventory
+- [ ] Resume note includes the fork inventory

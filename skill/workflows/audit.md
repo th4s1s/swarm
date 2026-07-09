@@ -3,7 +3,7 @@
 **Purpose**: Load prior CVEs/GHSAs and **mine them for patch-bypass surface**, then spawn one deep-audit subagent per feature group to hunt for vulnerabilities. End by writing the resume note.
 
 **Entry**: Recon + deploy complete.
-**Exit**: All groups audited, findings in SQL + per-group artifacts, resume note updated, user gate before fpcheck.
+**Exit**: All groups audited, findings in `vh_findings`, resume note updated.
 
 ---
 
@@ -115,20 +115,6 @@ Rewrite the resume note ([../references/resume-note-template.md](../references/r
 - **Top patch-bypass discoveries** (these are the highest-value items for vendor disclosure - call them out explicitly)
 - Live-PoC status (how many `verified='live-poc'` vs `'source-only'`)
 - Updated "Quirks to remember"
-
-## Step 8 - USER GATE
-
-> _Automated `source` mode supersedes this gate - proceed straight to fpcheck without pausing (see [source.md](source.md))._
-
-Present:
-
-> Deep audit complete. N findings across M groups: X CRITICAL, Y HIGH, Z MEDIUM, W LOW. K already live-verified.
->
-> Next: the **fpcheck** phase for static false-positive elimination (see SKILL.md for the phase syntax).
->
-> Say **go fpcheck** to proceed.
->
-> **Before continuing, run a manual compact** (`/compact`). All findings have been written to `vh_findings` + per-group artifacts, the resume note is fresh - compacting now is lossless. fpcheck spawns more subagents and will benefit from a clean context.
 
 ## Quality Checks
 

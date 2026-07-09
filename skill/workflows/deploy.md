@@ -3,13 +3,13 @@
 **Purpose**: Make sure a live instance of the audit target is reachable so that later phases (deep audit live-PoC, fpcheck spot-checks, verify forks) have a reproduction target. The instance may be **locally managed** (we bring it up via Docker / make / ad-hoc command) or **externally provided** (already running - e.g. on a staging server, remote VM, customer-hosted environment). Either way, produce a single live-instance note so subagents and forks can find it.
 
 **Entry**: Recon complete (or invoked independently to set up a target).
-**Exit**: Live instance reachable, endpoints documented in `/vibe/hack/audits/<project>/<project>-live-instance.md`, user gate before audit.
+**Exit**: Live instance reachable, endpoints documented in `/vibe/hack/audits/<project>/<project>-live-instance.md`.
 
 ---
 
 ## Step 0 - Pick the deployment mode
 
-Before touching anything, decide which mode applies. Ask the user explicitly if it isn't obvious:
+Before touching anything, decide which mode applies (read it from the live-instance note if one exists; otherwise infer from the target):
 
 | Mode | When to use | What we control | Capabilities for verify forks |
 |---|---|---|---|
@@ -18,10 +18,10 @@ Before touching anything, decide which mode applies. Ask the user explicitly if 
 
 If a `/vibe/hack/audits/<project>/<project>-live-instance.md` already exists, read it first - it tells you the mode and target. If the documented instance is still reachable (probe per Step 3), skip directly to Step 5.
 
-For **`external-provided`**, collect from the user (do not assume defaults). The richer this picture is, the wider the attack surface verify forks can legitimately probe - do NOT settle for just a URL:
+For **`external-provided`**, read the operator-supplied details from the **live-instance note** (the operator maintains it via the app's live-note editor; do not assume defaults). The richer this picture is, the wider the attack surface verify forks can legitimately probe - do NOT settle for just a URL:
 
 - **Base URL(s)** (e.g. `https://audit.example.com`, `http://10.0.5.12:8080`) - one per logical endpoint (proxy, admin/API, metrics, etc.)
-- **Credentials** - one row per usable identity. Ask the user to provide as many privilege tiers as they're willing to grant; if they only give a low-priv account, mention that admin-only flaws will be untestable. Capture for each:
+- **Credentials** - one row per usable identity, from the live-instance note. The more privilege tiers the operator recorded, the wider the testable surface; if only a low-priv account is present, admin-only flaws are untestable (record that gap). Capture for each:
   - role / privilege tier (e.g. `anonymous`, `tenant-user`, `tenant-admin`, `superadmin`, `service-account`)
   - how to authenticate (basic auth, bearer token, OAuth flow, API key header, session cookie - include the exact header/param name)
   - the secret value itself **goes in an env var the agent can read**, not in the live-instance note (the note records only the env var name + role + how to use it)
@@ -36,7 +36,7 @@ For **`external-provided`**, collect from the user (do not assume defaults). The
 - **Restart/redeploy contact** - who to ping if the instance goes down (so we never assume `docker compose restart` works), and the SLA for getting it back up (affects whether forks should serialize destructive PoCs)
 - **Disclosure of monitoring** - whether the operator has WAF/IDS in place that may rate-limit or ban the agent's IP; whether the operator wants prior notice before noisy probes
 
-If the user gives only a URL and nothing else, push back: confirm explicitly that you should proceed with anonymous-only testing (drastically reduced coverage) and record "no credentials supplied" in the live-instance note so the gap is visible in the final report.
+If the live-instance note has only a URL and nothing else, proceed with anonymous-only testing (drastically reduced coverage) and record "no credentials supplied" in the note so the gap is visible in the final report.
 
 **Default posture is "agent is free to test" - restrictions only exist where the user explicitly lists them.** For every limit/scope category above where the user supplied nothing, write the explicit `none - ...` marker in the corresponding live-instance-note section (see [../references/live-instance-template.md](../references/live-instance-template.md)). Never copy the template's illustrative bullets through verbatim - a verify fork will read them as real deny entries.
 
@@ -113,22 +113,6 @@ Required sections (mark sections N/A rather than deleting them if the mode doesn
 ## Step 5 - Update the resume note + memory pointer
 
 Add a "Live instance" reference line pointing at the live-instance note. Mark deploy DONE. Also update the audit pointer in your memory (phase = deploy) so you keep tracking this audit.
-
-## Step 6 - USER GATE
-
-Present:
-
-> Live instance is reachable: <mode> at <base-url(s)>. Live-instance note saved at the per-project audit home.
->
-> Capabilities for verify forks: backup=<y/n>, edit-config=<y/n>, restart=<y/n>, logs=<y/n>.
->
-> Next: the **audit** phase to ingest prior CVEs and run parallel deep audits (see SKILL.md for the phase syntax).
->
-> Say **go audit** to proceed.
->
-> **Before continuing, run a manual compact** (`/compact`). The live-instance note and the refreshed resume note are on disk, so compacting now is lossless. The audit phase ingests CVEs + spawns one deep-audit subagent per group and will benefit from a clean context.
-
-If mode is `external-provided`, explicitly call out in the gate message that any finding requiring config changes, service restart, or filesystem access will be marked INCONCLUSIVE by verify forks unless the operator coordinates the change out-of-band.
 
 ## Quality Checks
 

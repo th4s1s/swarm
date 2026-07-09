@@ -1,13 +1,13 @@
 # Workflow-accelerated mode (Claude Code + ultracode)
 
-**When to use:** ONLY when the **Workflow tool is available to you** (ultracode is on, or a workflow opt-in) - i.e. you can actually call the `Workflow` tool. This is an *optional accelerator* for the full `/vibehack` pipeline and the `source` run. If you do **not** have the Workflow tool (ultracode off), **ignore this file** and run the phases the normal way: the full pipeline **human-gated** between phases, `source` **unattended-inline**. This accelerator is layered on top of the default - it never replaces it.
+**When to use:** ONLY when the **Workflow tool is available to you** (ultracode is on, or a workflow opt-in) - i.e. you can actually call the `Workflow` tool. This is an *optional accelerator* for the full `/vibehack` pipeline and the `source` run. If you do **not** have the Workflow tool (ultracode off), **ignore this file** and run the phases the normal way, inline - the app drives phase transitions (no in-skill gates), and `source` runs unattended. This accelerator is layered on top of the default - it never replaces it.
 
 **What it changes:** one deterministic workflow script drives the whole run instead of you executing phases by hand. Under ultracode both flows run **gateless, end-to-end**:
 
 - `/vibehack` (full): recon → deploy → audit → fpcheck → **verify (serial)** → report.
 - `source`: recon → audit → fpcheck → report (source-only; no deploy, no verify).
 
-It also **sidesteps the verify-fork resume bug** (lessons-learned #17): the workflow uses fresh `agent()`s, not `/branch` forks, so nothing drifts the session's working directory.
+It also uses fresh `agent()`s, not `/branch` forks, so there is no per-fork session/cwd drift.
 
 ## Hard rules (the Workflow tool's real constraints - get these wrong and it breaks)
 

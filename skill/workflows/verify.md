@@ -1,25 +1,25 @@
 # vibehack - verify: Per-Finding Live PoC (Runs in a FORK)
 
-**Purpose**: Reproduce true-positive findings against the deployed live instance, then **adversarially review each one with fresh, unbiased subagents** before returning. **This workflow runs in a forked conversation** (or, under the Workflow-accelerated path, a fresh subagent), not the main orchestrator. **One fork/agent verifies exactly one finding** - write its `verify-<id>.md` verdict artifact, re-test it (Step 2) so bias and intentionally-vulnerable/test code are caught, and then **STOP**. Verify does not write the vulnerability report: that is a separate phase the user runs afterward, here in this same fork (see [report.md](report.md)), so the captured PoC evidence is still in context.
+**Purpose**: Reproduce true-positive findings against the deployed live instance, then **adversarially review each one with fresh, unbiased subagents** before returning. **This workflow runs in a forked conversation** (or, under the Workflow-accelerated path, a fresh subagent), not the main orchestrator. **One fork/agent verifies exactly one finding** - write its `verify-<id>.md` verdict artifact, re-test it (Step 2) so bias and intentionally-vulnerable/test code are caught, and then **STOP**. Verify does not write the vulnerability report: that is a separate phase run afterward, here in this same fork (see [report.md](report.md)), so the captured PoC evidence is still in context.
 
-**Entry**: You are a forked conversation. The user pasted a verify-fork prompt **or** invoked the **verify** phase with a comma-separated finding-ID list (IDs are mandatory; see SKILL.md → *How phases are invoked (Claude Code CLI)*). The audit's main orchestrator is paused awaiting fork completion.
-**Exit**: One `verify-<finding-id>.md` verdict artifact per finding, plus a summary table returned to the user. To produce vulnerability reports for the confirmed findings, the user runs the **report** phase in this same fork afterward (see [report.md](report.md)). There is no orchestrator consolidation: the per-finding reports are the deliverables.
+**Entry**: You are a forked conversation launched by the app for the **verify** phase with a comma-separated finding-ID list (IDs are mandatory; see SKILL.md → *How phases are invoked (Claude Code CLI)*).
+**Exit**: One `verify-<finding-id>.md` verdict artifact per finding, plus a summary table. To produce vulnerability reports for the confirmed findings, the **report** phase is run in this same fork afterward (see [report.md](report.md)). There is no orchestrator consolidation: the per-finding reports are the deliverables.
 
 ---
 
 ## Guard - refuse to run without IDs
 
-If the user invoked the **verify** phase with **no finding IDs and no pasted fork prompt**, stop immediately and respond:
+If the **verify** phase was invoked with **no finding IDs**, stop immediately and respond:
 
 > The **verify** phase runs in a forked conversation and requires a finding-ID list. Re-invoke it with the IDs: `/vibehack:verify G1-F1,G1-F2`. Each fork verifies one finding and writes its `verify-<id>.md` verdict; reports are written by running the **report** phase afterward in the fork (see [report.md](report.md)).
 
-Do not attempt to guess intent. Do not run any PoC. Do not scan artifacts. Wait for the user to re-issue the correct command.
+Do not attempt to guess intent. Do not run any PoC. Do not scan artifacts. The verify phase must be invoked with explicit finding IDs.
 
 ---
 
 ## Step 0 - Orient yourself
 
-You are a fork. **Work from the project root** (the workspace path in the resume note / fork prompt) so your fork is filed under this project in the resume picker; the audit dir is the absolute path `<AUDIT_DIR>` - write artifacts there by absolute path, and never `cd` into it.
+You are a fork. The audit dir is the absolute path `<AUDIT_DIR>` - write artifacts there by absolute path.
 
 **Scope - one finding per fork, serial:** a fork verifies **exactly one finding**. If you were handed several IDs, verify them **strictly one at a time** (finish one finding's PoC + review + artifact before starting the next) - never concurrently - because they share a single live instance and parallel PoCs race on config backup/restart. (Under the Workflow-accelerated path this is enforced by a serial `for`-loop - see [../references/workflow-orchestration.md](../references/workflow-orchestration.md).)
 
@@ -311,7 +311,7 @@ curl -sSI <base-url>/<known-stable-route>            # status unchanged vs Step 
 
 ## Step 5 - Return summary
 
-Return a compact markdown table to the user (this is for the user's situational awareness - **the orchestrator does NOT need it pasted back**):
+Return a compact markdown table (surfaced in the app for situational awareness - **the orchestrator does NOT need it pasted back**):
 
 | Finding | Status | Severity (orig → final) | Review | Upstream | One-line note |
 |---|---|---|---|---|---|
@@ -320,7 +320,7 @@ Return a compact markdown table to the user (this is for the user's situational 
 | G<n>-F<k> | REFUTED | MED → - | overturned: test-code | - | reviewers flagged intentionally-vulnerable example |
 | … | … | … | … | … | … |
 
-Plus a one-paragraph high-level summary. To write the vulnerability report(s) for the CONFIRMED finding(s), run the **report** phase here in this fork: `/vibehack:report <comma-separated CONFIRMED ids>`. The user can close this fork once the table looks right and any reports have been written. There is no orchestrator consolidation step - the per-finding reports are the deliverables.
+Plus a one-paragraph high-level summary. To write the vulnerability report(s) for the CONFIRMED finding(s), run the **report** phase here in this fork: `/vibehack:report <comma-separated CONFIRMED ids>`. There is no orchestrator consolidation step - the per-finding reports are the deliverables.
 
 ## Common Pitfalls (see also [../references/lessons-learned.md](../references/lessons-learned.md))
 

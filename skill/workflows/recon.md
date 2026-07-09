@@ -3,7 +3,7 @@
 **Purpose**: Detect the audit target, identify feature groups, and produce a complete code-to-feature mapping via parallel subagents. End by writing the resume note.
 
 **Entry**: User invokes the **recon** phase (see SKILL.md → *How phases are invoked (Claude Code CLI)*) or "audit this app" (full pipeline).
-**Exit**: All feature groups mapped, resume note saved, user gate before deploy phase.
+**Exit**: All feature groups mapped, resume note saved.
 
 ---
 
@@ -30,7 +30,7 @@ Notes live alongside the artifacts on disk, not in your memory:
 
 `archived-poc/` starts empty; verify forks may consult it for report-format examples, and the user archives each finalized report + its `poc/` into `archived-poc/<finding-id>/` after sending it to the maintainer.
 
-Record `AUDIT_DIR` - every later step uses it. It is an **absolute path outside the project tree**, so artifact writes resolve no matter the cwd. **Still, keep the cwd at the project root for the whole audit and never `cd` into `${AUDIT_DIR}`:** verify forks inherit the orchestrator's current directory and Claude's resume picker groups sessions by it, so a drifted cwd files your forks under a *different* project and hides them from this project's picker (see SKILL.md Essential Principle #10 and lessons-learned #17).
+Record `AUDIT_DIR` - every later step uses it. It is an **absolute path outside the project tree**, so artifact writes resolve no matter the cwd.
 
 ## Step 2 - Phase 0 source detection
 
@@ -38,7 +38,7 @@ Follow [../references/phase0-source-detection.md](../references/phase0-source-de
 
 1. Detect a binary target for autorev: Glob for an existing `**/*.i64` or a binary; if found, `create_database(<binary>, overwrite_existing=true)` (skip if a good `.i64` exists) → `load_database(<.i64>)` → `get_database_metadata` / `get_binary_overview` to confirm. (autorev is single-DB-per-session - load once here in the orchestrator.)
 2. Scan workspace for source-code indicators (build files, common dirs).
-3. Ask the user to choose the appropriate prompt variant (see SKILL.md → *Tools & subagents*). *(Automated `source` mode: auto-select the **source** target without asking; abort if the target is binary/autorev-only - see [source.md](source.md).)*
+3. Auto-select the target variant: prefer **source** when source indicators are present; use the binary/autorev path only for a binary-only target.
 4. Insert into `vh_sources`.
 
 ## Step 3 - Reconnaissance (go deep - this is the coverage foundation)
@@ -64,7 +64,7 @@ Goal: **100% code coverage.** Divide the codebase into as **many fine-grained fe
 
 Use the naming convention `G1…Gn` with stable IDs (so subagent outputs and SQL rows align).
 
-Present the groups and ask the user to confirm (see SKILL.md → *Tools & subagents*): "I've identified N feature groups. [list]. Should I proceed?" with options `["Looks good - proceed", "Let me adjust the groups"]`. *(Automated `source` mode: auto-accept the proposed groups without asking - see [source.md](source.md).)*
+Proceed with the proposed groups - there is no confirmation gate (the operator reviews groups in the app after recon and can re-run recon to adjust).
 
 Insert approved groups into `vh_feature_groups` (status='pending').
 
@@ -134,22 +134,6 @@ Use [../references/resume-note-template.md](../references/resume-note-template.m
 - Top "must-investigate" leads (12-20 items from observations) - these become the prioritization input for the audit phase
 - Quirks / environment notes
 - Resumption commands
-
-## Step 7 - USER GATE
-
-> _Automated `source` mode supersedes this gate - write the resume note and proceed to the audit phase without pausing (see [source.md](source.md))._
-
-Present:
-
-> Reconnaissance + feature mapping complete. N groups mapped with M total security observations. Resume note saved.
->
-> Next: the **deploy** phase to bring up a live instance for later PoC verification, or the **audit** phase if you'll skip live testing (see SKILL.md for the phase syntax).
->
-> Say **go deploy**, **go audit**, or **adjust** to revise mappings.
->
-> **Before continuing, run a manual compact** (`/compact`). The resume note + SQL state + per-group mapping artifacts are already on disk, so compacting now is lossless.
-
-Do NOT auto-advance. *(Exception: automated `source` mode auto-advances through this gate - see [source.md](source.md).)*
 
 ## Quality Checks
 

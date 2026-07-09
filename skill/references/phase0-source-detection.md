@@ -71,33 +71,13 @@ glob: **/*.rs
 
 Count files per language. Report primary and secondary languages.
 
-### 3. User Confirmation Prompts
+### 3. Target selection (automatic)
 
-Choose the appropriate prompt based on what was detected. Always ask the user to choose (see SKILL.md → *Tools & subagents*) - never assume. *(Automated `source` mode: do **not** show these prompts - auto-select the **source** target, even when autorev is also detected, and abort only if there is no source at all; see [../workflows/source.md](../workflows/source.md).)*
-
-**Both detected:**
-> I found source code at `{path}` ({language}, {count} files) and a binary for autorev: `{binary}` (loaded as `{i64_path}`).
->
-> Which should I use for the audit?
-
-Choices: `["Both source code + autorev (Recommended)", "Source code only", "autorev binary analysis only"]`
-
-**Only source detected:**
-> I found source code at `{path}` ({language}, {count} files). Is this the audit target?
-
-Choices: `["Yes, audit this source code", "I also have a binary - let me load it into autorev"]`
-
-**Only autorev detected:**
-> I loaded `{binary}` into autorev (db `{i64_path}`). Do you also have source code available?
-
-Choices: `["autorev only - proceed with binary analysis", "I have source code too - let me provide the path"]`
-
-**Neither detected:**
-> I couldn't find source code or a binary to load into autorev. Please provide one or both:
-> - Source code: Tell me the directory path
-> - Binary: Give me the path to the binary (or an existing `.i64`); I'll build/load the autorev database
-
-(Freeform input - no choices)
+Auto-select the target from what was detected - do not prompt:
+- **Both source and a binary**: default to **source** (richer context); add autorev only if the audit needs compiled-behavior confirmation.
+- **Only source**: audit the source.
+- **Only a binary**: use autorev (binary analysis).
+- **Neither**: abort with a clear reason - there is nothing to audit.
 
 ### 4. Dual-Source Strategy
 
