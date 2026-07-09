@@ -49,6 +49,12 @@ verified **per-spawn model override** (an opus orchestrator can spawn sonnet sub
 `semgrep-rule-creator` (test-first custom rules), `variant-analysis` (expand a confirmed finding).
 Caveat in §7: these skills have interactive approval gates.
 
+**Custom-detector-capable tools** (the surface the learning loop feeds, §5b): semgrep (YAML rule),
+CodeQL (`.ql` query + data-extension model), Joern (CPGQL query), **nuclei** (YAML template - the *live*
+analog of a static rule), gitleaks (regex, only for secret findings). osv-scanner / ffuf / sqlmap have
+no custom-rule surface. When each of these tools lands in a slice, that slice also adds its
+finding -> detector emitter.
+
 ## 4. Data model
 
 New **`vh_scanner_hits`** table (app-seeded in `skill/schema.sql`, like the rest):
@@ -86,6 +92,38 @@ fingerprint (dedupe across re-runs), raw (SARIF result blob), created_at`.
 - **verify** - ffuf/nuclei/sqlmap assist live PoC confirmation, within existing RoE limits.
 - **report** - deterministic CVSS 3.1 vector->score.
 
+## 5b. Learning loop: findings -> reusable detectors (cross-cutting)
+
+Each *verified, reportable* finding is distilled into a reusable detector, so every audit makes future
+audits (and re-audits) sharper. This is cross-cutting, not semgrep-specific.
+
+- **When**: a **post-report step**. Only once the report is written is a finding a confirmed, reportable
+  TP - so after `report.md` / the per-finding reports exist, offer to generate detectors from exactly
+  those findings (not earlier during verify).
+- **Permission-gated**: never auto-writes rules silently. In the app's gateless model this is a per-run
+  toggle or a **post-report UI approval** (operator reviews the proposed detectors before they are
+  saved), not an in-agent prompt. (Open question, §10.)
+- **How**: for each reportable finding, author a detector via the tool's rule-authoring path,
+  **test-first** (vulnerable snippet -> positive case; the fix/remediation -> negative case), with a
+  mandatory validation gate (e.g. `semgrep --test`) so a bad rule cannot pollute future scans. Metadata
+  carries provenance: finding id, CWE, severity, project, audit timestamp, verified-vs-source-only.
+- **Per-tool emitters** (each lands with its tool's slice; shared machinery built once): semgrep YAML
+  (B), CodeQL `.ql`+data-extension (B/C), Joern query (B), nuclei template (D - the live/runtime
+  detector, ideal for re-audit against a running instance), gitleaks regex (secret findings only).
+- **Storage - two tiers, local files (self-contained, offline, versionable):**
+  - *Project library* - detectors from this project, in the persistent audit home
+    (`/vibe/hack/audits/<project>/rules/`, survives re-audits like the live-instance note). The
+    **re-audit killer feature**: the next audit runs these first -> instantly flags a reintroduced bug
+    or a sibling in new code (regression detection).
+  - *Global library* - detectors promoted as general bug-class detectors, reused across all projects.
+    project -> global promotion is a deliberate, reviewed step so the shared lib stays high-quality.
+- **Consumption**: scans append the project + global libraries after the community packs (per tool:
+  `--config` for semgrep, query suites for CodeQL/Joern, `-t` for nuclei). Hits from finding-derived
+  detectors are tagged **high-priority leads** in `vh_scanner_hits` (they match a previously *confirmed*
+  bug).
+- **Lifecycle**: a detector is tied to its finding - reclassify the finding FP -> retire the detector;
+  keep it as a regression guard once the bug is fixed.
+
 ## 6. App vs skill responsibilities
 
 - **App (backend)**: the `install-tools.sh` bootstrap; the deterministic baseline pre-pass in
@@ -114,21 +152,26 @@ fingerprint (dedupe across re-runs), raw (SARIF result blob), created_at`.
 
 ## 8. Install / bootstrap
 
-New `scripts/install-tools.sh` (repo has no `scripts/` yet) in the house style (`#!/usr/bin/env bash`,
-`set -euo pipefail`), installing the full toolset (semgrep, codeql, joern, osv-scanner, gitleaks, ffuf,
-nuclei, sqlmap) with pinned versions and idempotent checks. Wired in: a new bullet in the README
-"Requirements" + a "step 0" in "Quick start" (root `README.md`), and optionally an idempotent guard in
-`start.sh`'s first-run block (mirroring its `npm install`).
+`scripts/install-tools.sh` (house style: `#!/usr/bin/env bash`, `set -euo pipefail`) installs the
+toolchain into repo-local `tools/` (gitignored, **never on the global PATH**; invoked by absolute path),
+idempotent. **Slice A ships semgrep (venv) + gitleaks (binary)**; each later slice adds the tool it uses
+(codeql, joern, osv-scanner, nuclei, ffuf, sqlmap) - the script is structured with one function per tool
+and a documented "later slices" section. Wired in: a README "Requirements" bullet + a "step 0" in
+"Quick start", and an idempotent guard in `start.sh`'s first-run block.
 
 ## 9. Roadmap (sequenced; each measured on the meter)
 
-- **Slice A - foundation + recon**: `install-tools.sh`, `vh_scanner_hits`, app-side semgrep+gitleaks
-  baseline + SARIF ingest, recon Step 4.5 (bucket + seed), sonnet mapping subagents. *Metric: recon
-  cost down, coverage/leads up.*
+- **Slice A - foundation + recon [DONE]**: `install-tools.sh` (semgrep+gitleaks into `tools/`),
+  `vh_scanner_hits`, app-side baseline scan + SARIF ingest, recon Step 4.5 (bucket + seed), sonnet
+  mapping subagents. Baseline ruleset broadened to `p/security-audit + p/owasp-top-ten + p/cwe-top-25`.
 - **Slice B - audit hunt**: osv ingest; agent-authored custom rules + Joern/CodeQL dataflow +
   variant-analysis; resolve the ToB-gate handling. *Metric: new true-positives (recall up), precision held.*
 - **Slice C - fpcheck reachability verifier**. *Metric: FP-kill rate up, zero true-positive loss.*
 - **Slice D - verify live tools + report CVSS**. *Metric: PoC-confirm rate; CVSS accuracy.*
+- **Slice E - learning loop (findings -> detectors, §5b)**: the shared machinery (post-report generation
+  step, permission gate, 2-tier rule library, high-priority-lead tagging) + the **semgrep** emitter.
+  Other tools' emitters land with their own slices (CodeQL/Joern with B, nuclei with D). Comes after B.
+  *Metric: re-audit flags reintroduced/variant bugs; finding-derived leads convert to TPs at a high rate.*
 
 ## 10. Open questions (resolve per-slice)
 
@@ -137,3 +180,8 @@ nuclei, sqlmap) with pinned versions and idempotent checks. Wired in: a new bull
 - ToB-gate handling: auto-satisfy vs inline replication.
 - Per-phase **effort** tiering (recon at medium effort) - a small app change (effort is run-level today).
 - Where the baseline runs: at project-create (cached, sha-keyed for re-audits) vs first-recon-run.
+- Learning loop (§5b) permission gate in the gateless app: per-run toggle vs post-report UI approval.
+- Rule-library storage: project detectors in the audit home; global-lib location (app path vs a git
+  repo) + promotion policy (auto vs reviewed).
+- Should source-mode (not live-verified) TPs generate detectors, and at lower trust than live-verified
+  ones?
