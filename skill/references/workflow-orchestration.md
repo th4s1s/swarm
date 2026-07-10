@@ -50,7 +50,7 @@ const recon = await agent(
   { phase:'Recon', schema: GROUPS })
 
 await parallel(recon.groups.map(g => () =>                       // fan-out: one writable agent per group
-  agent(`${ref} Read ${SK}/workflows/recon.md (Step 5) + references/phase2-feature-mapping.md. Map feature group ${g.id} "${g.name}" (dirs: ${g.dirs.join(', ')}) for a SOURCE-only audit: write ${AUDIT}/files/${g.id}-mapping.md and INSERT into ${AUDIT}/audit.db (vh_attack_surface, vh_security_observations). Return counts.`,
+  agent(`${ref} Read ${SK}/workflows/recon.md (Step 5) + references/phase2-feature-mapping.md. Map feature group ${g.id} "${g.name}" (dirs: ${g.dirs.join(', ')}) for a SOURCE-only audit: INSERT into ${AUDIT}/audit.db one vh_group_mapping row per sub-feature + vh_security_observations rows + a vh_group_coverage row for the group (no mapping.md file). Return counts.`,
     { label:`map:${g.id}`, phase:'Recon' })))
 
 await agent(`${ref} Read references/resume-note-template.md and write the resume note for ${AUDIT} (recon DONE).`, { phase:'Recon' })

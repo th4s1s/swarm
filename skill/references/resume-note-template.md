@@ -38,10 +38,12 @@ Record (in whatever shape your memory uses):
 - Phase 6 (report): DONE | NOT STARTED
 
 ## Feature groups
-| ID | Name | Mapping file | Status |
+| ID | Name | Coverage | Status |
 |---|---|---|---|
-| G1 | … | `files/G1-mapping.md` | mapped/audited |
+| G1 | … | <files_mapped>/<files_total> | mapped/audited |
 | … | … | … | … |
+
+(Mapping is in `audit.db`: `vh_group_mapping` rows per group + a `vh_group_coverage` row; no per-group mapping file.)
 
 ## SQL re-orient queries (paste-and-run)
 ```bash

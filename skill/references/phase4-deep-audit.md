@@ -35,8 +35,11 @@ Your goal: find REAL, EXPLOITABLE vulnerabilities. No theoretical concerns.
 ## Your Assignment
 Feature group: {group_id} - {group_name}
 
-## Feature Mapping (your attack surface)
-{mapping_content}
+## Feature Mapping (your attack surface - read it yourself from audit.db)
+Your attack surface for group {group_id} is stored as structured rows in `audit.db`, not pasted here. Before hunting, run these two queries and treat the results as your map:
+- `SELECT feature_name, entry_points, files, auth, inputs, data_flow, trust_boundary FROM vh_group_mapping WHERE group_id='{group_id}';` - one row per sub-feature (entry points, implementing files, auth, input sources, data flow, trust boundary).
+- `SELECT observation, severity_hint, location FROM vh_security_observations WHERE group_id='{group_id}';` - the recon phase's security-relevant observations (your prioritization leads).
+Then read the actual source those rows point to (per Rules of Engagement below) - the mapping locates the attack surface; it never substitutes for reading the code.
 
 ## Source Access
 {source_access_instructions}

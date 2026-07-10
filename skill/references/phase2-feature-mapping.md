@@ -71,9 +71,9 @@ For binaries: Use the autorev MCP (`load_database(<.i64>)` first if you have you
 Your job is to map your scope **exhaustively** - every file read, every sub-feature captured. If that is more than you can do well in one pass, **do not skim**: split your file scope into coherent sub-scopes and **spawn one writable `general-purpose` sub-subagent per sub-scope, in parallel**, handing each this same prompt for its slice. The **same rule applies recursively** - a helper whose slice is still too large splits and spawns again, as deep as needed, until every leaf reads its files in full. (In Claude Code a subagent can spawn subagents.)
 
 **Owner vs. helper (avoid clobbering / SQLite races):**
-- If you are the **group owner** (the orchestrator spawned you for this group): after merging everything your helpers return, **you** write the consolidated `<AUDIT_DIR>/files/{group_id}-mapping.md` and run the SQL inserts for the whole group.
-- When you spawn a **helper**, tell it: *"map this sub-scope and **return** your mapping (the markdown sections + the attack-surface and observation rows) to me - do **not** write the group file or run SQL."* Helpers may recurse the same way for their own slice and merge their descendants' returns before returning to you.
-- Your **Coverage** line is the **union** of your own and all descendants' coverage - every file in your scope mapped, none dropped.
+- If you are the **group owner** (the orchestrator spawned you for this group): after merging everything your helpers return, **you** run the SQL inserts for the whole group - one `vh_group_mapping` row per sub-feature, the `vh_security_observations` rows, and the group's `vh_group_coverage` row.
+- When you spawn a **helper**, tell it: *"map this sub-scope and **return** your mapping rows (the per-sub-feature fields + observation rows + the files you covered) to me - do **not** run any SQL."* Helpers may recurse the same way for their own slice and merge their descendants' returns before returning to you.
+- Your **coverage** is the **union** of your own and all descendants' coverage - every file in your scope mapped, none dropped.
 - If spawning subagents is unavailable in your environment, map your entire scope yourself, sequentially. Never skip files for lack of helpers.
 
 ## What to Map
@@ -93,19 +93,20 @@ For each sub-feature, document:
 
 ## Output Format
 
-Return a structured markdown document with one section per feature:
+Your output is **rows in `audit.db`**, not prose. INSERT one `vh_group_mapping` row per sub-feature (`INSERT INTO vh_group_mapping (group_id, feature_name, entry_points, files, auth, inputs, data_flow, trust_boundary) VALUES (...)`) so each row is self-contained - the deep-audit subagent reads these rows directly as its attack surface. Per sub-feature:
 
-### Feature: {name}
-- **Entry point**: `METHOD /path` or `function_name()` at `file:line`
-- **Files**: `file1.cpp`, `file2.cpp`, ...
-- **Auth**: none / user / admin
-- **Inputs**: list of input sources
-- **Data flow**: source → processing → sink
-- **Trust boundary**: yes/no, which boundary
-- **Observations**: any security-relevant notes
+- **feature_name**: what the sub-feature does
+- **entry_points**: `METHOD /path` or `function_name()` at `file:line` (list several if present)
+- **files**: implementing source files (comma-separated)
+- **auth**: none / user / admin / internal
+- **inputs**: input sources (headers, query params, body, file uploads, env, args, database)
+- **data_flow**: source → processing → sink
+- **trust_boundary**: which boundary is crossed (privilege/network/process/tenant), or `none`
+
+Record each security-relevant note as a separate `vh_security_observations` row (see Mapping Output Storage) - do **not** fold observations into the mapping row.
 
 ## Thoroughness Level
-Aim for **100% coverage of your assigned scope**. Read **every** file - never skip one as "boring" or "just config/util"; those hide the best bugs. Decompose to the **finest meaningful sub-features** (more is better - do not lump). Follow imports/includes to understand dependencies. Document internal helper functions that handle user data. End your mapping with a **Coverage** line: list the files you read vs. any in-scope file you did not map (target: none unmapped) so the orchestrator can spot gaps.
+Aim for **100% coverage of your assigned scope**. Read **every** file - never skip one as "boring" or "just config/util"; those hide the best bugs. Decompose to the **finest meaningful sub-features** (more is better - do not lump). Follow imports/includes to understand dependencies. Document internal helper functions that handle user data. Finish by recording your **coverage** - the files you read vs. any in-scope file you did not map (target: none unmapped) - so the orchestrator can spot gaps: helpers **return** their covered-files list to the owner, and the owner writes the group's `vh_group_coverage` row.
 
 ## Known Prior Art
 {known_findings_summary}
@@ -150,18 +151,23 @@ Prioritize source code for understanding logic. Use autorev for:
 
 ## Mapping Output Storage
 
-After all subagents return:
+Each group owner writes its results to `audit.db`. There is **no** `files/{group_id}-mapping.md` - these rows are the sole record (the deep-audit phase reads them, not a prose file). After merging all helper returns:
 
-1. **Session files**: Save each group's full output to `files/{group_id}-mapping.md`
-2. **SQL attack surface**:
+1. **Per-sub-feature mapping** - one row each:
    ```sql
-   INSERT INTO vh_attack_surface (group_id, endpoint, method, auth_required, description)
-   VALUES (?, ?, ?, ?, ?);
+   INSERT INTO vh_group_mapping
+     (group_id, feature_name, entry_points, files, auth, inputs, data_flow, trust_boundary)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?);
    ```
-3. **SQL observations**:
+2. **Security observations** - one row per note:
    ```sql
    INSERT INTO vh_security_observations (group_id, observation, severity_hint, location)
    VALUES (?, ?, ?, ?);
+   ```
+3. **Coverage** - one row per group (files mapped vs. the in-scope total; list any left unmapped):
+   ```sql
+   INSERT INTO vh_group_coverage (group_id, files_mapped, files_total, unmapped, note)
+   VALUES (?, ?, ?, ?, ?);
    ```
 
 ## Quality Checks
@@ -170,8 +176,8 @@ Before finalizing mappings, verify:
 
 - [ ] **Every source file in the codebase is mapped** under some group (no unmapped files - cross-check against the full file inventory)
 - [ ] Each group is decomposed into **as many granular sub-features as exist** (not lumped into one or two broad "features")
-- [ ] Each group's mapping ends with a Coverage line and shows no in-scope files left unmapped
-- [ ] Every mapped sub-feature has at least one source file reference
+- [ ] Each group has a `vh_group_coverage` row showing no in-scope files left unmapped
+- [ ] Every `vh_group_mapping` row has at least one file in its `files` column
 - [ ] No source files are mapped to multiple groups (or if they are, it's intentional and documented)
 - [ ] Authentication requirements are specified for every entry point
 - [ ] At least 1 security observation exists per group (if zero, the mapping was too shallow)

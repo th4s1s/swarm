@@ -27,13 +27,31 @@ CREATE TABLE IF NOT EXISTS vh_feature_groups (
     status TEXT                  -- pending -> mapped -> audited
 );
 
--- Recon - attack surface per group (references/phase2-feature-mapping.md)
-CREATE TABLE IF NOT EXISTS vh_attack_surface (
-    group_id TEXT NOT NULL,
-    endpoint TEXT,               -- METHOD /path or function_name()
-    method TEXT,
-    auth_required TEXT,          -- none / user / admin
-    description TEXT
+-- Recon - per-sub-feature attack surface (references/phase2-feature-mapping.md). One row per sub-feature.
+-- This IS the deep-audit subagent's structured attack-surface input: the audit subagent reads its group's
+-- rows directly (SELECT ... WHERE group_id=?), replacing the old files/G<n>-mapping.md prose dump so the
+-- mapping is never re-ingested as text. Every analytical field is preserved as a column.
+CREATE TABLE IF NOT EXISTS vh_group_mapping (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id TEXT NOT NULL,      -- G1, G2, ...
+    feature_name TEXT NOT NULL,  -- the sub-feature name
+    entry_points TEXT,           -- METHOD /path or function_name() @ file:line (may list several)
+    files TEXT,                  -- implementing source files for this sub-feature
+    auth TEXT,                   -- none / user / admin / internal
+    inputs TEXT,                 -- input sources (headers, query, body, uploads, env, args, db, ...)
+    data_flow TEXT,              -- source -> processing -> sink
+    trust_boundary TEXT          -- which boundary crossed (privilege/network/process/tenant), or 'none'
+);
+
+-- Recon - per-group coverage record (the old mapping "Coverage" line). One row per group. A separate table
+-- (not extra columns on vh_feature_groups) on purpose: CREATE TABLE IF NOT EXISTS can add a new table to
+-- an already-seeded db but cannot add a column to an existing one, so this stays re-seed-safe.
+CREATE TABLE IF NOT EXISTS vh_group_coverage (
+    group_id TEXT PRIMARY KEY,   -- G1, G2, ...
+    files_mapped INTEGER,        -- count of in-scope files actually mapped
+    files_total INTEGER,         -- count of in-scope files assigned to the group
+    unmapped TEXT,               -- any in-scope files left unmapped (target: none)
+    note TEXT                    -- free-form coverage note
 );
 
 -- Recon - security-relevant observations per group (references/phase2-feature-mapping.md)

@@ -100,7 +100,7 @@ mapping subagents drop to `sonnet`.
 
 **Recursive, self-scaling mapping (go as deep as the code demands):** a group may still be too large for one subagent to read every file. Instruct each mapping subagent that **if its assigned scope is too large to map exhaustively itself, it must split the scope and spawn its own writable `general-purpose` sub-subagents** (one per sub-scope, in parallel) - and the **same rule applies recursively** to those helpers, deepening until each leaf agent's slice is small enough to read in full. In Claude Code a subagent can spawn subagents, so this nests arbitrarily. Coordination so depth never clobbers files or races SQLite:
 - A spawned **helper returns** its mapping (markdown sections + the attack-surface/observation rows) to its caller; it does **not** write the group file or SQL.
-- Only the **group owner** (the subagent the orchestrator spawned for `G<n>`) writes `<AUDIT_DIR>/files/G<n>-mapping.md` and runs the group's SQL inserts, after merging everything its helpers returned.
+- Only the **group owner** (the subagent the orchestrator spawned for `G<n>`) runs the group's SQL inserts (`vh_group_mapping` rows + `vh_security_observations` + the `vh_group_coverage` row), after merging everything its helpers returned. There is no `G<n>-mapping.md` file.
 - Each parent's **Coverage** line is the **union** of its own + all descendants' coverage (every file in the group mapped).
 - Fallback: if spawning is unavailable, the agent maps its whole scope itself, sequentially - never skip files for lack of helpers.
 - **autorev/binary targets**: the parallel + recursive fan-out above is for **source**. autorev holds one DB per session, so for a binary target either map groups **serially** through the orchestrator's loaded session, or have each binary-mapping agent `load_database(<.i64>)` in its own session before analyzing - never have many agents contend on the same `.i64` concurrently.
@@ -112,14 +112,15 @@ Each subagent prompt (template from [../references/phase2-feature-mapping.md](..
 - **Max-coverage mandate**: read **every file in scope** (none skipped as "boring") and decompose the group into **as many granular sub-features as exist** - one per route/handler/command/parser/state-machine/helper that touches input. Map every entry point and every function that handles external/cross-boundary data.
 - **Scanner leads are supplementary hints, not your scope.** Do the full max-coverage mapping above **first** - read every file and enumerate all sub-features independent of any leads (leads never narrow or replace it). THEN also review your group's leads (`SELECT tool, rule_id, severity, file, line, message FROM vh_scanner_hits WHERE group_id='G<n>'`): for each that maps to real code, fold it into your sub-features + `vh_security_observations`, then `UPDATE vh_scanner_hits SET status='triaged' WHERE group_id='G<n>'`. A lead is never a confirmed finding and never a substitute for full coverage.
 - **Recursive-decomposition instruction** (template's *Scale yourself* section): split oversized scope and spawn helper sub-subagents that **return** their mapping; only the group owner writes the file + SQL.
-- Instruction to write **two outputs**:
-  1. Detailed mapping → `<AUDIT_DIR>/files/G<n>-mapping.md` - including a **Coverage** line listing the in-scope files read vs. any not yet mapped (target: none unmapped)
-  2. SQL inserts into `vh_attack_surface` and `vh_security_observations`
+- Instruction to write its results as **SQL rows** in `audit.db` (there is **no** `G<n>-mapping.md` file - the rows are the sole record the deep-audit phase reads):
+  1. One `vh_group_mapping` row per sub-feature (all columns: `feature_name, entry_points, files, auth, inputs, data_flow, trust_boundary`)
+  2. `vh_security_observations` rows (one per security-relevant note)
+  3. One `vh_group_coverage` row for the group - `files_mapped` vs. `files_total` (in-scope), listing any in-scope file not yet mapped in `unmapped` (target: none)
 - Instruction to return a compact summary (counts: sub-features, files read / files in scope, endpoints, observations)
 
 After all subagents return:
-- Verify each `files/G<n>-mapping.md` exists and is non-trivial.
-- **Coverage check**: confirm every file from the Step 3 inventory appears in some group's mapping. Any unmapped file → assign it to a group and re-run that group's subagent (don't proceed with gaps).
+- Verify each group has `vh_group_mapping` rows and a `vh_group_coverage` row (`SELECT group_id, COUNT(*) FROM vh_group_mapping GROUP BY group_id;`).
+- **Coverage check**: confirm every file from the Step 3 inventory appears in some group's mapping (cross-check the `vh_group_coverage.unmapped` field + the `vh_group_mapping.files` columns). Any unmapped file → assign it to a group and re-run that group's subagent (don't proceed with gaps).
 - `UPDATE vh_feature_groups SET status='mapped' WHERE id=?` for each.
 - Query SQL to confirm counts.
 
@@ -142,6 +143,6 @@ Use [../references/resume-note-template.md](../references/resume-note-template.m
 - [ ] **Full coverage**: every source file from the Step 3 inventory is assigned to a group and appears in that group's mapping (no unmapped files)
 - [ ] Groups are **fine-grained** - each ≤ ~30 files / ~1500 LoC; anything larger was split (granularity favored over a low group count)
 - [ ] Every group is decomposed into multiple granular sub-features (a group with a single broad "feature" was mapped too shallow → re-run)
-- [ ] Every group has a `files/G<n>-mapping.md` ≥ 50 lines
+- [ ] Every group has ≥ 1 `vh_group_mapping` row and a `vh_group_coverage` row with no in-scope files left unmapped
 - [ ] Every group has ≥ 1 row in `vh_security_observations` (zero means mapping was too shallow → re-run that group's subagent)
 - [ ] Resume note exists and includes the must-investigate leads list

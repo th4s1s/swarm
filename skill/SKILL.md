@@ -50,7 +50,7 @@ The skill supports six phases (invoke them individually after the prior phase co
 
 | Phase | Workflow file | Purpose | Entry condition | Output |
 |---|---|---|---|---|
-| `recon` | [workflows/recon.md](workflows/recon.md) | Source detection, deep reconnaissance, **parallel feature mapping** into as many fine-grained groups/sub-features as needed for **full code coverage**, write resume note | Fresh start (or new target) | `vh_feature_groups`, `vh_attack_surface`, `vh_security_observations` populated; `files/G<n>-mapping.md` per group (every source file covered); resume note ready for compact |
+| `recon` | [workflows/recon.md](workflows/recon.md) | Source detection, deep reconnaissance, **parallel feature mapping** into as many fine-grained groups/sub-features as needed for **full code coverage**, write resume note | Fresh start (or new target) | `vh_feature_groups`, `vh_group_mapping`, `vh_group_coverage`, `vh_security_observations` populated (per-sub-feature mapping rows; every source file covered); resume note ready for compact |
 | `deploy` | [workflows/deploy.md](workflows/deploy.md) | Deploy live instance from source (Docker, build artifact, or local run); document in `/vibe/hack/audits/<project>/<project>-live-instance.md` | Recon done OR independent setup task | Live instance running; endpoints documented; live-instance note saved at the per-project audit home |
 | `audit` | [workflows/audit.md](workflows/audit.md) | Load prior CVEs/advisories (find patch-bypass surfaces), **parallel deep-audit subagents** per group, write resume note | Recon + deploy done | `vh_known_findings`, `vh_findings` populated; resume note updated |
 | `fpcheck` | [workflows/fpcheck.md](workflows/fpcheck.md) | **Parallel FP-check subagents** apply Hard Exclusions / Precedent rules / Marginal Gain Test - **static review only**, no live testing; write resume note | Audit done | `vh_fp_verdicts` populated; per-batch `artifacts/phase5-batch<X>.md`; resume note updated |
@@ -143,7 +143,8 @@ The automated **`source`** run uses the same diagram **minus deploy and the veri
 |---|---|---|
 | `vh_sources` | Source configuration (path, autorev, both) | recon |
 | `vh_feature_groups` | Group definitions + status | recon |
-| `vh_attack_surface` | Endpoints/entry points per group | recon |
+| `vh_group_mapping` | Per-sub-feature attack surface (entry points, files, auth, inputs, data flow, trust boundary) - the deep-audit subagent's structured input | recon |
+| `vh_group_coverage` | Per-group coverage record (files mapped vs. in-scope total) | recon |
 | `vh_security_observations` | Pre-audit observations from mapping | recon |
 | `vh_known_findings` | Prior CVEs/advisories + patch-bypass intel | audit |
 | `vh_findings` | Candidate findings from deep audit (col `artifact_path`) | audit |
@@ -155,8 +156,8 @@ The automated **`source`** run uses the same diagram **minus deploy and the veri
 /vibe/hack/audits/<project>/audit-<YYYYMMDD-HHMMSS>/   # OUTSIDE the project tree
 ├── audit.db                        # SQLite source of truth
 ├── files/
-│   ├── G<n>-mapping.md             # per-group feature mapping (recon)
 │   └── known-findings.md           # advisories + patch-bypass surface (audit)
+│                                    # (feature mapping lives in audit.db: vh_group_mapping + vh_group_coverage)
 ├── artifacts/
 │   ├── phase5-batch<X>-*.md        # per-batch FP-check verdicts (fpcheck)
 │   ├── verify-<finding-id>.md      # per-finding verification record (verify)
@@ -249,7 +250,7 @@ To begin, route to the appropriate workflow:
 
 ## Success Criteria
 
-- [ ] All feature groups have mappings in SQL + `files/G<n>-mapping.md`
+- [ ] All feature groups have `vh_group_mapping` rows + a `vh_group_coverage` row
 - [ ] **Full code coverage**: every source file is assigned to a group and mapped (groups are fine-grained, each decomposed into many sub-features - no file or entry point left unmapped)
 - [ ] Live instance is running and documented in the live-instance note
 - [ ] Every group was deep-audited; findings in `vh_findings`
