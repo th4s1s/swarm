@@ -21,7 +21,7 @@ export function ModelSelect({ value, onChange }: { value: string; onChange: (v: 
         <Input
           autoFocus
           value={value}
-          placeholder="claude-opus-4-8"
+          placeholder="claude-opus-5"
           onChange={(e) => onChange(e.target.value)}
         />
         <Button type="button" variant="subtle" size="sm" onClick={() => setTyping(false)}>

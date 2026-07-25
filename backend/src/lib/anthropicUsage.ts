@@ -39,7 +39,8 @@ export function readAccount(): AccountInfo {
   };
 }
 
-function readAccessToken(): string | null {
+/** The Claude Code OAuth access token, for api.anthropic.com calls (usage, model list). */
+export function readAccessToken(): string | null {
   const creds = readJson(join(homedir(), '.claude', '.credentials.json'));
   const co = (creds?.['claudeAiOauth'] ?? {}) as Record<string, unknown>;
   return typeof co['accessToken'] === 'string' ? (co['accessToken'] as string) : null;
