@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# SWARM - one-command dev launcher.
-# Starts the backend (Fastify, :8787) and the frontend (Vite, :6767) together,
-# installs deps on first run, and tears both down on Ctrl-C.
+# SWARM - one-command launcher (public/production).
+# Runs the backend (Fastify, localhost:8787) and serves the BUILT frontend via
+# `vite preview` (static dist/ only, :6767) - so no source tree is ever exposed.
+# Installs deps on first run, builds the frontend, and tears both down on Ctrl-C.
+# For local UI development with HMR, instead run `cd frontend && npm run dev`
+# (that dev server is localhost-only) alongside `cd backend && npm start`.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,11 +45,14 @@ trap cleanup INT TERM EXIT
 echo "Starting backend  -> http://127.0.0.1:8787"
 (cd "$BACKEND" && npm start) &
 
-echo "Starting frontend -> http://localhost:6767"
-(cd "$FRONTEND" && npm run dev) &
+echo "Building frontend (static bundle)…"
+(cd "$FRONTEND" && npm run build)
+
+echo "Serving frontend -> http://<host>:6767  (vite preview - static dist/ only, no source)"
+(cd "$FRONTEND" && npm run preview) &
 
 echo
-echo "SWARM is starting. Open http://localhost:6767 (default login: admin / vibhackiscool)."
+echo "SWARM is starting. Open http://<host>:6767 (default login: admin / vibhackiscool)."
 echo "Press Ctrl-C to stop both servers."
 echo
 
